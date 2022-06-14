@@ -3,13 +3,15 @@ import VueRouter from "vue-router";
 import AppHeader from "./layout/AppHeader.vue";
 import LoginScreen from "./views/LoginScreen.vue";
 import DashboardScreen from "./views/DashboardScreen.vue";
+import EditProfileScreen from "./views/EditProfileScreen.vue";
+import ProfileScreen from "./views/ProfileScreen.vue";
 import NotFound from "./views/NotFound.vue";
 
 Vue.use(VueRouter);
 
 const routes = [
   {
-    path: "/home",
+    path: "/dashboard",
     name: "Dashboard",
     components: {
       header: AppHeader,
@@ -22,6 +24,16 @@ const routes = [
     components: {
       default: LoginScreen,
     },
+  },
+  {
+    path: "/profile",
+    name: "Profile",
+    components: { default: ProfileScreen, header: AppHeader },
+  },
+  {
+    path: "/editprofile",
+    name: "EditProfile",
+    components: { default: EditProfileScreen, header: AppHeader },
   },
   {
     path: "*",

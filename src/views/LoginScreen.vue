@@ -3,7 +3,7 @@
         <div class="hero">
             <div class="overlay"></div>
             <div class="content">
-                <vs-button size="xl" @click="ceramicAuth"> LOGIN </vs-button>
+                <b-button type="is-info" size="is-medium" @click="ceramicAuth" :loading="buttonLoader">LOGIN</b-button>
             </div>
         </div>
     </div>
@@ -16,18 +16,26 @@ export default {
     data() {
         return {
             active: true,
+            buttonLoader: false
         };
     },
     methods: {
-        openLoading() {
-            const loading = this.$vs.loading();
-            setTimeout(() => {
-                loading.close();
-            }, 6000);
-        },
         async ceramicAuth() {
+            this.buttonLoader = true;
             this.$store
                 .dispatch("authenticateCeramic")
+                .then((boolFlag) => {
+                    this.buttonLoader = false;
+                    if (boolFlag) {
+                        this.$router.push("/dashboard");
+                    } else {
+                        this.danger()
+                    }
+                })
+                .catch(() => {
+                    this.buttonLoader = false;
+                    this.danger()
+                });
             // .then((boolean) => {
             //     if (boolean) {
             //         let route = this.$router.resolve({ path: "/home" });
@@ -37,10 +45,6 @@ export default {
             //     }
             // })
             // .catch((err) => console.error(err));
-            setTimeout(() => {
-                // eslint-disable-next-line no-unused-vars
-                // let loading = this.$vs.loading();
-            }, 4500);
         },
         danger() {
             this.$buefy.toast.open({

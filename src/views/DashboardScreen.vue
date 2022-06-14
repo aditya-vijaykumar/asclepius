@@ -16,7 +16,7 @@
                         <article class="tile is-child notification is-danger">
                             <p class="title">Your DID</p>
                             <br />
-                            <p class="subtitle"> did goes here </p>
+                            <p class="subtitle"> {{ did }} </p>
                             <div class="content">
                                 <!-- Content -->
                             </div>
@@ -41,8 +41,7 @@
                                 <br />
 
                                 <b-tooltip type="is-dark" label="This QR Code is valid only for a few minutes.">
-                                    <b-button label="Generate" type="is-dark" size="is-medium"
-                                        @click="active = !active" />
+                                    <b-button label="Generate" type="is-dark" size="is-medium" @click="alertCustom" />
                                 </b-tooltip>
                             </article>
                         </div>
@@ -84,42 +83,36 @@
                 <vs-col vs-type="flex" vs-justify="center" vs-align="center" w="3">
                 </vs-col>
                 <vs-col vs-type="flex" vs-justify="center" vs-align="center" w="6" class="mb-3">
-                    <vs-table>
-                        <template #header>
-                            <vs-input v-model="search" border placeholder="Search" />
-                        </template>
-                        <template #thead>
-                            <vs-tr>
-                                <vs-th> ID </vs-th>
-                                <vs-th sort @click="
-                                    recordsList = $vs.sortData($event, recordsList, 'title')
-                                ">
-                                    Title
-                                </vs-th>
-                                <vs-th> Option </vs-th>
-                            </vs-tr>
-                        </template>
-                        <template #tbody>
-                            <vs-tr :key="i" v-for="(tr, i) in $vs.getSearch(recordsList, search)" :data="tr">
-                                <vs-td>
-                                    {{ tr.id }}
-                                </vs-td>
-                                <vs-td>
-                                    {{ tr.title }}
-                                </vs-td>
-                                <vs-td>
-                                    <vs-button gradient success @click="myFunc(tr.id)">
-                                        Open
-                                    </vs-button>
-                                </vs-td>
-                            </vs-tr>
-                        </template>
-                    </vs-table>
+                    <section>
+                        <b-table :data="data">
+                            <b-table-column field="id" centered label="ID" width="40" numeric v-slot="props">
+                                {{ props.row.id }}
+                            </b-table-column>
+
+                            <b-table-column field="first_name" centered label="Record Title" sortable v-slot="props">
+                                {{ props.row.first_name }}
+                            </b-table-column>
+
+                            <b-table-column field="date" label="Date" centered v-slot="props">
+                                <span>
+                                    <b-tag type="is-success">{{ new Date(props.row.date).toLocaleDateString() }}
+                                    </b-tag>
+                                </span>
+                            </b-table-column>
+
+                            <b-table-column label="Action">
+                                <span>
+                                    <b-button size="is-small" type="is-primary">Open</b-button>
+                                </span>
+                            </b-table-column>
+                        </b-table>
+                        <hr />
+                    </section>
                 </vs-col>
             </vs-row>
         </div>
 
-        <div class="center">
+        <!-- <div class="center">
             <vs-dialog v-model="active">
                 <template #header>
                     <h4 class="not-margin">QR COde <b>Generator</b></h4>
@@ -137,7 +130,7 @@
                     </div>
                 </template>
             </vs-dialog>
-        </div>
+        </div> -->
 
         <br />
         <br />
@@ -149,7 +142,7 @@
 // @ is an alias to /src
 import AppHeader from "../layout/AppHeader.vue";
 import AppFooter from "../layout/AppFooter.vue";
-// import { mapState } from "vuex";
+import { mapState } from "vuex";
 
 export default {
     name: "DashboardScreen",
@@ -163,6 +156,36 @@ export default {
             records: [],
             search: "",
             socketUserID: "",
+            data: [
+                { 'id': 1, 'first_name': 'General Health Checkup', 'date': '2016-10-15 13:43:27' },
+                { 'id': 2, 'first_name': 'Seasonal Flu', 'date': '2016-12-15 06:00:53' },
+                { 'id': 3, 'first_name': 'Migraine', 'date': '2016-04-26 06:26:28' },
+                { 'id': 4, 'first_name': 'Common Cold', 'date': '2016-04-10 10:28:46' },
+                { 'id': 5, 'first_name': 'Injured Ankle', 'date': '2016-12-06 14:38:38', }
+            ],
+            columns: [
+                {
+                    field: 'id',
+                    label: 'ID',
+                    width: '100',
+                    numeric: true,
+                    searchable: true,
+                },
+                {
+                    field: 'first_name',
+                    label: 'Record Title',
+                    searchable: true,
+                },
+                {
+                    field: 'date',
+                    label: 'Date',
+                    centered: true
+                },
+                {
+                    field: 'gender',
+                    label: 'Action',
+                }
+            ]
         };
     },
     methods: {
@@ -180,6 +203,12 @@ export default {
         //         console.log("successfully generated QR Code");
         //     });
         // },
+        alertCustom() {
+            this.$buefy.dialog.alert({
+                title: 'QR Code Generator',
+                message: '<div class="con-form">< canvas id="canvas" ></canvas></div><vs-button block @click="createQRCode">'
+            })
+        },
         openLoading() {
             const loading = this.$vs.loading();
             setTimeout(() => {
@@ -271,9 +300,9 @@ export default {
     //     socket.off("disconnect");
     //     socket.off("private message");
     // },
-    // computed: {
-    //     ...mapState(["recordsList", "did", "ethaddress", "profile", "profilePic"]),
-    // },
+    computed: {
+        ...mapState(["recordsList", "did", "ethaddress", "profile", "profilePic"]),
+    },
 };
 </script>
 <style scoped>
@@ -293,7 +322,7 @@ export default {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-top: 43px;
+    margin-top: 10px;
     border-bottom-left-radius: 15px;
     border-bottom-right-radius: 15px;
 }

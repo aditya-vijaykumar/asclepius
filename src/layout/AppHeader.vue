@@ -1,52 +1,74 @@
 <template>
-    <div class="center examplex">
-        <vs-navbar :color="active" center-collapsed v-model="active">
-            <template #left>
-                <vs-navbar-item> Asclepius </vs-navbar-item>
-                <vs-navbar-item href="/home" target="_self"> Home </vs-navbar-item>
-                <vs-navbar-item href="/profile" target="_self"> Profile </vs-navbar-item>
-            </template>
-            <template #right>
-                <vs-button primary @click="newRecord">New Record</vs-button>
-                <vs-button primary danger @click="logout">Logout</vs-button>
-            </template>
-        </vs-navbar>
-    </div>
+    <b-navbar type="is-white">
+        <template #brand>
+            <b-navbar-item tag="router-link" :to="{ path: '/' }">
+                <img src="../../public/Asset1.png">
+            </b-navbar-item>
+        </template>
+        <template #start>
+            <b-navbar-item href="/dashboard">
+                Home
+            </b-navbar-item>
+            <b-navbar-item href="/profile">
+                Profile
+            </b-navbar-item>
+            <b-navbar-item tag="div">
+                <div class="buttons">
+                    <a class="button is-warning">
+                        <strong>New Record</strong>
+                    </a>
+                </div>
+            </b-navbar-item>
+        </template>
+
+        <template #end>
+            <b-navbar-item tag="div">
+                <div class="buttons">
+                    <b-button type="is-danger" @click="onlyDIDLogout">Logout</b-button>
+                </div>
+            </b-navbar-item>
+        </template>
+    </b-navbar>
 </template>
 
 <script>
 export default {
-    name: "AppHeader",
+    name: 'AppHeader',
     data() {
         return {
-            active: "#ffb000",
-        };
+            active: '#ffb000'
+        }
     },
     methods: {
         openLoading() {
-            const loading = this.$vs.loading();
+            const loading = this.$vs.loading()
             setTimeout(() => {
-                loading.close();
-            }, 2500);
-        },
-        auth() {
-            this.$store.dispatch("ceramicAuth");
-        },
-        newRecord() {
-            let route = this.$router.resolve({ path: '/new' });
-            window.open(route.href, '_self');
-        },
-        async logout() {
-            const loading = this.$vs.loading();
-            await this.$store.dispatch("logoutTriggered");
-            let route = this.$router.resolve({ path: '/' });
-            setTimeout(() => {
-                loading.close();
-                window.open(route.href, "_self");
+                loading.close()
             }, 2500)
         },
-    },
-};
+        auth() {
+            this.$store.dispatch('ceramicAuth')
+        },
+        newRecord() {
+            const route = this.$router.resolve({ path: '/new' })
+            window.open(route.href, '_self')
+        },
+        async logout() {
+            const loading = this.$vs.loading()
+            await this.$store.dispatch('logoutTriggered')
+            const route = this.$router.resolve({ path: '/' })
+            setTimeout(() => {
+                loading.close()
+                window.open(route.href, '_self')
+            }, 2500)
+        },
+        onlyDIDLogout() {
+            const route = this.$router.resolve({ path: '/' })
+            window.open(route.href, '_self')
+            this.$store.commit('onlyDIDLogout')
+        }
+    }
+}
 </script>
 
 <style>
