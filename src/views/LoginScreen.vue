@@ -69,7 +69,7 @@ export default {
 .hero {
     height: 1080px;
     width: 100%;
-    background-image: url("../../public/Artboard2.jpg");
+    background-image: url("../../public/ArtboardStandard.jpg");
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center;

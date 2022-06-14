@@ -284,7 +284,7 @@ export default {
 .hero {
     height: 550px;
     width: 100%;
-    background-image: url("../../public/Artboard.jpg");
+    background-image: url("../../public/ArtboardWide.jpg");
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center;
