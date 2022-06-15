@@ -1,10 +1,12 @@
 import Vue from "vue";
 import Vuex from "vuex";
+import VuexPersistence from 'vuex-persist'
 Vue.use(Vuex);
 
 import { CeramicClient } from "@ceramicnetwork/http-client";
 // Import DID client
 import { DID } from "dids";
+// import Web3 from "web3";
 
 import { getResolver as getKeyResolver } from "key-did-resolver";
 import { getResolver as get3IDResolver } from "@ceramicnetwork/3id-did-resolver";
@@ -78,105 +80,6 @@ export default new Vuex.Store({
     records: (state) => state.recordsList.records,
   },
   mutations: {
-    initialiseStore(state) {
-      if (localStorage.getItem("ethaddress") != null) {
-        state.ethaddress = localStorage.getItem("ethaddress");
-      }
-
-      if (localStorage.getItem("did") != null) {
-        state.did = localStorage.getItem("did");
-      }
-
-      if (localStorage.getItem("profilePic") != null) {
-        state.profilePic = localStorage.getItem("profilePic");
-      }
-
-      if (localStorage.getItem("recordsList") != null) {
-        state.recordsList = JSON.parse(localStorage.getItem("recordsList"));
-      }
-
-      if (localStorage.getItem("authenticated")) {
-        state.authenticated = true;
-      }
-
-      if (localStorage.getItem("currentRecord") != null) {
-        state.currentRecord = JSON.parse(localStorage.getItem("currentRecord"));
-      }
-      if (localStorage.getItem("basicProfile") != null) {
-        state.profile = JSON.parse(localStorage.getItem("basicProfile"));
-      }
-    },
-    auth(state, payload) {
-      state.ethaddress = payload.ethaddress;
-      localStorage.setItem("ethaddress", payload.ethaddress);
-
-      if (payload.profile != null) {
-        state.profile = payload.profile;
-        let url = "https://ipfs.io/ipfs/";
-        let cid = payload.profile.image.original.src.slice(7);
-        state.profilePic = url + cid;
-        localStorage.setItem("profilePic", state.profilePic);
-        localStorage.setItem("basicProfile", JSON.stringify(payload.profile));
-      }
-
-      state.did = payload.did;
-      localStorage.setItem("did", payload.did);
-      console.log("Mutation set");
-
-      if (payload.recordList != null) {
-        state.recordsList = payload.recordList.records;
-        localStorage.setItem(
-          "recordsList",
-          JSON.stringify(payload.recordList.records)
-        );
-      }
-
-      state.authenticated = true;
-      localStorage.setItem("authenticated", true);
-
-      console.log("mutation executed and state stored");
-    },
-    newRecord(state, payload) {
-      state.recordsList = payload.recordList.records;
-      localStorage.setItem(
-        "recordsList",
-        JSON.stringify(payload.recordList.records)
-      );
-    },
-    updateProfile(state, payload) {
-      state.profile = payload.profile;
-      let url = "https://ipfs.io/ipfs/";
-      let cid = payload.profile.image.original.src.slice(7);
-      state.profilePic = url + cid;
-      localStorage.setItem("profilePic", state.profilePic);
-      localStorage.setItem("basicProfile", JSON.stringify(payload.profile));
-    },
-    currentRecord(state, payload) {
-      state.currentRecord = payload.currentRecord;
-      console.log(payload.currentRecord);
-      localStorage.setItem(
-        "currentRecord",
-        JSON.stringify(payload.currentRecord)
-      );
-    },
-    logoutTriggered(state) {
-      state.ethaddress = "";
-      localStorage.setItem("ethaddress", null);
-
-      state.did = "";
-      localStorage.setItem("did", null);
-
-      state.profile = {};
-      localStorage.setItem("basicProfile", null);
-
-      state.recordsList = [];
-      localStorage.setItem("recordsList", null);
-
-      state.authenticated = false;
-      localStorage.setItem("authenticated", false);
-
-      console.log("User Logged out Succesfully");
-    },
     storeDID(state, payload) {
       state.did = payload.did;
       localStorage.setItem("did", payload.did);
@@ -187,20 +90,19 @@ export default new Vuex.Store({
     },
   },
   actions: {
-    async authenticateCeramic({ commit }) {
+    async authenticateCeramic({commit}) {
       try {
         const ethereumProvider = await web3Modal.connect();
-        // ethereumProvider._portis.isLoggedIn().then(() => {
-        //   console.log("Portis logged in");
-        // });
-        // Request accounts from the Ethereum provider
-        const accounts = await ethereumProvider.request({
-          method: "eth_requestAccounts",
-        });
-        // Create an EthereumAuthProvider using the Ethereum provider and requested account
+        console.log(ethereumProvider)
+        console.log('selectedAddress '+ethereumProvider.selectedAddress)
+        const addresses = await ethereumProvider.enable()
+        console.log("addresses\n\n")
+        const account = addresses[0]
+        console.log(addresses)
+
         const authProvider = new EthereumAuthProvider(
           ethereumProvider,
-          accounts[0]
+          account
         );
         // Connect the created EthereumAuthProvider to the 3ID Connect instance so it can be used to
         // generate the authentication secret
@@ -335,6 +237,7 @@ export default new Vuex.Store({
       }, 2000);
     },
   },
+  plugins: [new VuexPersistence().plugin]
 });
 async function infuraUpload(selectedImage) {
   let imgurl = null;
