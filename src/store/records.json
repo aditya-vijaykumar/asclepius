@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "HealthRecords",
+  "type": "object",
+  "properties": {
+    "records": {
+      "type": "array",
+      "title": "records",
+      "items": {
+        "type": "object",
+        "properties": {
+          "rId": {
+            "type": "string",
+            "title": "rId"
+          },
+          "rTitle": {
+            "type": "integer",
+            "title": "rTitle"
+          }
+        }
+      }
+    }
+  }
+}

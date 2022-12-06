@@ -17,8 +17,12 @@ import { DIDDataStore } from "@glazed/did-datastore";
 import { basicProfileModel as aliases } from "../utils/basicProfileModel";
 import { ModelManager } from "@glazed/devtools";
 import { model as basicProfileModel } from "@datamodels/identity-profile-basic";
+import { convert as toLegacyIpld } from 'blockcodec-to-ipld-format'
+import * as dagJose from 'dag-jose'
 
 import { create } from "ipfs-http-client";
+// import { prepareCleartext } from "dag-jose-utils";
+
 
 import Web3Modal from "web3modal";
 import Portis from "@portis/web3";
@@ -30,6 +34,8 @@ const API_URL = "https://ceramic-clay.3boxlabs.com";
 // Create the Ceramic object
 const ceramic = new CeramicClient(API_URL);
 const threeID = new ThreeIdConnect();
+
+const dagJoseIpldFormat = toLegacyIpld(dagJose)
 const ipfs = create({
   host: "ipfs.infura.io",
   port: 5001,
@@ -41,6 +47,7 @@ const ipfs = create({
         "2A4tKpAUqbVfcgwkvZhBVASwbrc" + ":" + "a636c461783951b90a023ee3e979daae"
       ).toString("base64"),
   },
+  ipld: { formats: [dagJoseIpldFormat] }
 });
 
 const providerOptions = {
@@ -141,33 +148,86 @@ export default new Vuex.Store({
 
         console.log(basicProfileModel);
         console.log("\n");
+        await manager.createSchema('MySchema', {
+          $schema: 'http://json-schema.org/draft-07/schema#',
+          title: 'MySchema',
+          type: 'object',
+          properties: {
+            
+          },
+        })
+        
         const aliases = await manager.deploy();
         console.log(aliases);
       } catch (error) {
         console.log(error);
       }
     },
-    async encryptAndStore({ state }) {
-      // const cleartext = { some: 'data', coolLink: new CID('bafyqacnbmrqxgzdgdeaui') }
-      const cleartext = { some: "data" };
+    async encryptAndStore() {
+      try {
+        
+      const ethereumProvider = await web3Modal.connect();
+      console.log(ethereumProvider)
+      console.log('selectedAddress '+ethereumProvider.selectedAddress)
+      const addresses = await ethereumProvider.enable()
+      console.log("addresses\n\n")
+      const account = addresses[0]
+      console.log(addresses)
 
-      // encrypt the cleartext object
-      const jwe = await state.did.createDagJWE(cleartext, [
-        "did:3:bafy89h4f9...",
-        "did:key:za234...",
-      ]);
+      const authProvider = new EthereumAuthProvider(
+        ethereumProvider,
+        account
+      );
+      // Connect the created EthereumAuthProvider to the 3ID Connect instance so it can be used to
+      // generate the authentication secret
+      await threeID.connect(authProvider);
 
-      // put the JWE into the ipfs dag
-      const jweCid = await ipfs.dag.put(jwe, {
-        format: "dag-jose",
-        hashAlg: "sha2-256",
+      // const ceramic = new CeramicClient()
+      const did = new DID({
+        // Get the DID provider from the 3ID Connect instance
+        provider: threeID.getDidProvider(),
+        resolver: {
+          ...get3IDResolver(ceramic),
+          ...getKeyResolver(),
+        },
       });
-      console.log(jweCid);
-      // get the jwe from the dag and decrypt it
-      const dagJWE = await ipfs.dag.get(jweCid);
-      console.log(await state.did.decryptDagJWE(dagJWE));
-      // output:
-      // > { some: 'data' }
+
+      // Authenticate the DID using the 3ID provider from 3ID Connect, this will trigger the
+      // authentication flow using 3ID Connect and the Ethereum provider
+      await did.authenticate();
+
+      // The Ceramic client can create and update streams using the authenticated DID
+      ceramic.did = did;
+      console.log(did.id);  
+    const cleartext = { some: 'data' }
+    // const cleartext = await prepareCleartext({ some: "data", coolLink: new CID('bafyqacnbmrqxgzdgdeaui') });
+
+    // encrypt the cleartext object
+    const jwe = await did.createDagJWE(cleartext, [
+      did.id
+    ]);
+    console.log(jwe);
+
+    // put the JWE into the ipfs dag
+    const jweCid = await ipfs.dag.put(jwe, {
+      format: "dag-jose",
+      hashAlg: "sha2-256",
+    });
+    // const idOfJweCid = jweCid.toString();
+    // console.log(idOfJweCid);
+    // get the jwe from the dag and decrypt it
+    // const creatingCID = new CID(idOfJweCid)
+    // console.log(creatingCID)
+    const dagJWE = await ipfs.dag.get(jweCid);
+    console.log(dagJWE);
+    const decryptedStuff = await did.decryptDagJWE(dagJWE.value);
+    console.log(decryptedStuff);
+    // output:
+    // > { some: 'data' }
+  
+      } catch (error) {
+        console.error(error)
+      }
     },
     async updateProfile({ commit }, payload) {
       const ethereumProvider = await web3Modal.connect();
