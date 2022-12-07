@@ -267,7 +267,7 @@ export default {
       profile: {},
       search: "",
       record: {
-        date: new Date().toISOString(),
+        date: new Date().toISOString().slice(0,10),
         title: "",
         doctor: "",
         dateDiagnosis: "",

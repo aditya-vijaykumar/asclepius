@@ -196,7 +196,7 @@ export default new Vuex.Store({
         const profile = (await store.get("basicProfile")) ?? {};
         console.log(profile);
 
-        const allRecords = (await store.get("HealthRecordsDefinition")) ?? {
+        const allRecords = (await store.get("RecordsList")) ?? {
           records: [],
         };
         console.log(allRecords);
@@ -265,7 +265,7 @@ export default new Vuex.Store({
         //       "ceramic://k3y52l7qbv1frydfi8cnwenycbcijktr8br1pdgwwdaoe6mpwmyvj8bebxt6raneo",
         //   },
         //   definitions: {
-        //     HealthRecordsDefinition:
+        //     RecordsList:
         //       "k3y52l7qbv1frxozbetu4jrwakdq2zrdkm82phy5gjomptp2f49b7u0alljckbocg",
         //   },
         //   tiles: {},
@@ -276,7 +276,7 @@ export default new Vuex.Store({
         console.log(model);
 
         console.log(model.getSchemaURL("HealthRecordsSchema"));
-        console.log(model.getDefinitionID("HealthRecordsDefinition"));
+        console.log(model.getDefinitionID("RecordsList"));
         const store = new DIDDataStore({ ceramic, model });
         console.log(store);
         await store.set("basicProfile", {
@@ -390,13 +390,19 @@ export default new Vuex.Store({
           hashAlg: "sha2-256",
         });
 
-        const recordsResp = (await store.get("HealthRecordsDefinition")) ?? {
+        console.log({ jweCid: jweCid.toString() });
+
+        const recordsResp = (await store.get("RecordsList")) ?? {
           records: [],
         };
 
-        const recordsUpdated = await store.set("HealthRecordsDefinition", {
+        const recordsUpdated = await store.set("RecordsList", {
           records: [
-            { id: jweCid, title: payload.record.title },
+            {
+              id: jweCid.toString(),
+              title: payload.record.title,
+              date: payload.record.date,
+            },
             ...recordsResp.records,
           ],
         });
@@ -406,7 +412,7 @@ export default new Vuex.Store({
         const profile = (await store.get("basicProfile")) ?? {};
         console.log(profile);
 
-        const allRecords = (await store.get("HealthRecordsDefinition")) ?? {
+        const allRecords = (await store.get("RecordsList")) ?? {
           records: [],
         };
         console.log(allRecords);
