@@ -193,18 +193,25 @@ export default new Vuex.Store({
         const model = new DataModel({ ceramic, aliases });
         const store = new DIDDataStore({ ceramic, model });
 
-        const profile = await store.get("basicProfile");
+        const profile = (await store.get("basicProfile")) ?? {};
         console.log(profile);
 
-        const allRecords = await store.get("HealthRecordsDefinition");
+        const allRecords = (await store.get("HealthRecordsDefinition")) ?? {
+          records: [],
+        };
         console.log(allRecords);
+        commit("storeDID", {
+          did: did.id,
+        });
         commit("storeProfileAndRecords", {
           profile,
           recordsList: allRecords.records,
         });
         console.log(profile);
+        return true;
       } catch (error) {
         console.error(error);
+        return false;
       }
     },
     async testSchemas() {
@@ -324,6 +331,94 @@ export default new Vuex.Store({
         // console.log(aliases);
       } catch (error) {
         console.log(error);
+      }
+    },
+    async encryptStore({ commit }, payload) {
+      try {
+        const ethereumProvider = await web3Modal.connect();
+        console.log(ethereumProvider);
+        console.log("selectedAddress " + ethereumProvider.selectedAddress);
+        const addresses = await ethereumProvider.enable();
+        console.log("addresses\n\n");
+        const account = addresses[0];
+        console.log(addresses);
+
+        const authProvider = new EthereumAuthProvider(
+          ethereumProvider,
+          account
+        );
+        // Connect the created EthereumAuthProvider to the 3ID Connect instance so it can be used to
+        // generate the authentication secret
+        await threeID.connect(authProvider);
+
+        // const ceramic = new CeramicClient()
+        const did = new DID({
+          // Get the DID provider from the 3ID Connect instance
+          provider: threeID.getDidProvider(),
+          resolver: {
+            ...get3IDResolver(ceramic),
+            ...getKeyResolver(),
+          },
+        });
+
+        // Authenticate the DID using the 3ID provider from 3ID Connect, this will trigger the
+        // authentication flow using 3ID Connect and the Ethereum provider
+        await did.authenticate();
+
+        // The Ceramic client can create and update streams using the authenticated DID
+        ceramic.did = did;
+        console.log(did.id);
+
+        const manager = new ModelManager({ ceramic });
+        manager.addJSONModel(basicProfileModel);
+        manager.addJSONModel(healthRecordsModel);
+        const aliases = await manager.deploy();
+        console.log(aliases);
+        const model = new DataModel({ ceramic, aliases });
+        const store = new DIDDataStore({ ceramic, model });
+
+        //Storing the records
+        const record = payload.record;
+
+        // encrypt the record object
+        const jwe = await did.createDagJWE(record, [did.id]);
+        console.log(jwe);
+
+        // put the JWE into the ipfs dag
+        const jweCid = await ipfs.dag.put(jwe, {
+          format: "dag-jose",
+          hashAlg: "sha2-256",
+        });
+
+        const recordsResp = (await store.get("HealthRecordsDefinition")) ?? {
+          records: [],
+        };
+
+        const recordsUpdated = await store.set("HealthRecordsDefinition", {
+          records: [
+            { id: jweCid, title: payload.record.title },
+            ...recordsResp.records,
+          ],
+        });
+
+        console.log(recordsUpdated);
+
+        const profile = (await store.get("basicProfile")) ?? {};
+        console.log(profile);
+
+        const allRecords = (await store.get("HealthRecordsDefinition")) ?? {
+          records: [],
+        };
+        console.log(allRecords);
+
+        commit("storeProfileAndRecords", {
+          profile,
+          recordsList: allRecords.records,
+        });
+        console.log(profile);
+        return true;
+      } catch (error) {
+        console.error(error);
       }
     },
     async encryptAndStore() {

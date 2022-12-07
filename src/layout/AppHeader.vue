@@ -14,7 +14,7 @@
             </b-navbar-item>
             <b-navbar-item tag="div">
                 <div class="buttons">
-                    <a class="button is-warning">
+                    <a class="button is-warning" href="/new-record">
                         <strong>New Record</strong>
                     </a>
                 </div>
