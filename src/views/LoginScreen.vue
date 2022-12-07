@@ -23,7 +23,7 @@ export default {
         async ceramicAuth() {
             this.buttonLoader = true;
             this.$store
-                .dispatch("encryptAndStore")
+                .dispatch("authenticateAndFetchData")
                 .then((boolFlag) => {
                     this.buttonLoader = false;
                     if (boolFlag) {

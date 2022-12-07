@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "HealthRecords",
+  "title": "HealthRecordsSchema",
   "type": "object",
   "properties": {
     "records": {
@@ -9,13 +9,13 @@
       "items": {
         "type": "object",
         "properties": {
-          "rId": {
+          "id": {
             "type": "string",
-            "title": "rId"
+            "title": "id"
           },
-          "rTitle": {
+          "title": {
             "type": "integer",
-            "title": "rTitle"
+            "title": "title"
           }
         }
       }
