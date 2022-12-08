@@ -54,12 +54,12 @@
                             <p class="title center">Your Profile</p>
                             <div class="screen-body-item" v-if="profile != undefined && profile.name != null">
                                 <div class="img-circle center">
-                                    <!-- <img :src="profilePic" alt="profile-image" /> -->
-                                    <img src="" alt="profile-image" />
+                                    <img :src="profilePic" alt="profile-image" />
+                                    <!-- <img src="" alt="profile-image" /> -->
                                 </div>
                                 <br />
                                 <div class="app-form center">
-                                    <h5> Profile.Name </h5>
+                                    <h5> {{ profile.name }} </h5>
                                 </div>
                             </div>
                             <div class="screen-body-item" v-else>
@@ -84,25 +84,34 @@
                 </vs-col>
                 <vs-col vs-type="flex" vs-justify="center" vs-align="center" w="6" class="mb-3">
                     <section>
-                        <b-table :data="data">
+                        <b-table :data="recordsList">
                             <b-table-column field="id" centered label="ID" width="40" numeric v-slot="props">
-                                {{ props.row.id }}
+                                {{ props.index + 1 }}
                             </b-table-column>
 
-                            <b-table-column field="first_name" centered label="Record Title" sortable v-slot="props">
-                                {{ props.row.first_name }}
+                            <b-table-column field="first_name" centered width="200" label="Record Title" sortable
+                                v-slot="props">
+                                {{ props.row.title }}
                             </b-table-column>
 
-                            <b-table-column field="date" label="Date" centered v-slot="props">
+                            <b-table-column field="date" label="Date" width="120" centered v-slot="props">
                                 <span>
                                     <b-tag type="is-success">{{ new Date(props.row.date).toLocaleDateString() }}
                                     </b-tag>
                                 </span>
                             </b-table-column>
 
-                            <b-table-column label="Action">
+                            <b-table-column field="cid" label="C-ID" width="120" centered v-slot="props">
+                                <b-tooltip :label="props.row.id" type="is-dark" dashed>
+                                    {{ props.row.id.slice(0, 4) }}...{{ props.row.id.slice(-4) }}
+                                </b-tooltip>
+
+                            </b-table-column>
+
+                            <b-table-column label="Action" centered width="120" v-slot="props">
                                 <span>
-                                    <b-button size="is-small" type="is-primary">Open</b-button>
+                                    <b-button size="is-small" type="is-primary"
+                                        @click="openRecord(props.row.id)">Open</b-button>
                                 </span>
                             </b-table-column>
                         </b-table>
@@ -132,6 +141,13 @@
             </vs-dialog>
         </div> -->
 
+        <b-notification :closable="false">
+            <b-loading :is-full-page="isFullPage" v-model="isLoading">
+                <b-icon pack="fas" icon="sync-alt" size="is-large" custom-class="fa-spin">
+                </b-icon>
+            </b-loading>
+        </b-notification>
+
         <br />
         <br />
         <app-footer></app-footer>
@@ -152,6 +168,8 @@ export default {
     },
     data() {
         return {
+            isLoading: false,
+            isFullPage: true,
             active: false,
             records: [],
             search: "",
@@ -218,14 +236,27 @@ export default {
         sessionIDstore(takeID) {
             this.socketUserID = takeID;
         },
-        async myFunc(id) {
-            const loading = this.$vs.loading();
-            await this.$store.dispatch("decryptHR", { id });
-            let route = this.$router.resolve({ path: "/content/" + id });
-            setTimeout(() => {
-                loading.close();
-                window.open(route.href, "_self");
-            }, 9000);
+        async openRecord(id) {
+            this.isLoading = true
+            this.$store.dispatch("decryptRecord", { id })
+                .then((boolFlag) => {
+                    this.isLoading = false
+                    if (boolFlag) {
+                        this.$router.push("/record/" + id);
+                    } else {
+                        this.danger()
+                    }
+                })
+                .catch(() => {
+                    this.isLoading = false
+                    this.danger()
+                });
+            // .then((bool;
+            // let route = this.$router.resolve({ path: "/content/" + id });
+            // setTimeout(() => {
+            //     loading.close();
+            //     window.open(route.href, "_self");
+            // }, 9000);
         },
         async retrieveDispatch(Pname, cid) {
             let payload = {
@@ -240,6 +271,14 @@ export default {
             }, 3000);
         },
     },
+     danger() {
+            this.$buefy.toast.open({
+                duration: 5000,
+                message: `Could not decrypt the record, please try again later.`,
+                position: "is-bottom",
+                type: "is-danger",
+            });
+        },
     // created() {
     //     const sessionID = localStorage.getItem("sessionID");
 

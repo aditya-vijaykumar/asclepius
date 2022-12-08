@@ -281,21 +281,12 @@ export default {
         return {
             active: false,
             name: "",
-            did: "",
             userID: "",
             sessionID: "",
             src: "https://www.w3schools.com/howto/img_avatar2.png",
             selectedImage: null,
             imageHeight: 0,
-            imageWidth: 0,
-            profile: {
-                name: "",
-                description: "",
-                gender: "",
-                homeLocation: "",
-                birthDate: null,
-                image: null,
-            },
+            imageWidth: 0
         };
     },
     methods: {
@@ -315,7 +306,7 @@ export default {
                 this.imageWidth = takeImage.width;
                 console.log(takeImage.height);
                 this.imageHeight = takeImage.height;
-            }, 1500);
+            }, 20);
         },
         async updateProfile() {
             let loading = this.$vs.loading();
@@ -332,11 +323,11 @@ export default {
                 imageWidth,
             });
 
-            let route = this.$router.resolve({ path: "/profile" });
-            setTimeout(() => {
-                window.open(route.href, "_self");
-            }, 3000);
             loading.close();
+            // let route = this.$router.resolve({ path: "/profile" });
+            // setTimeout(() => {
+            //     window.open(route.href, "_self");
+            // }, 1500);
         },
     },
     computed: {

@@ -22,7 +22,7 @@ import { model as healthRecordsModel } from "./model.json";
 import { convert as toLegacyIpld } from "blockcodec-to-ipld-format";
 import * as dagJose from "dag-jose";
 
-import { create } from "ipfs-http-client";
+import { CID, create } from "ipfs-http-client";
 // import { prepareCleartext } from "dag-jose-utils";
 
 import Web3Modal from "web3modal";
@@ -46,7 +46,7 @@ const ipfs = create({
     authorization:
       "Basic " +
       Buffer.from(
-        "2A4tKpAUqbVfcgwkvZhBVASwbrc" + ":" + "a636c461783951b90a023ee3e979daae"
+        process.env.VUE_APP_IPFS_KEY + ":" + process.env.VUE_APP_IPFS_SECRET
       ).toString("base64"),
   },
   ipld: { formats: [dagJoseIpldFormat] },
@@ -82,7 +82,14 @@ export default new Vuex.Store({
     did: "",
     ethaddress: "",
     currentRecord: {},
-    profile: {},
+    profile: {
+      name: "",
+      description: "",
+      gender: "",
+      homeLocation: "",
+      birthDate: null,
+      image: null,
+    },
     profilePic: "",
   },
   getters: {
@@ -93,15 +100,50 @@ export default new Vuex.Store({
       state.did = payload.did;
       localStorage.setItem("did", payload.did);
     },
-    storeProfileAndRecords(state, payload) {
-      state.profile = payload.profile;
+    storeProfile(state, payload) {
+      if (payload.profile != null) {
+        state.profile = payload.profile;
+        let url = "https://ipfs.io/ipfs/";
+        let cid = payload.profile.image.original.src.slice(7);
+        state.profilePic = url + cid;
+        localStorage.setItem("profilePic", state.profilePic);
+        localStorage.setItem("basicProfile", JSON.stringify(payload.profile));
+      }
+    },
+    storeRecords(state, payload) {
       state.recordsList = payload.recordsList;
-      localStorage.setItem("profile", payload.profile);
       localStorage.setItem("recordsList", payload.recordsList);
+    },
+    storeProfileAndRecords(state, payload) {
+      state.recordsList = payload.recordsList;
+      localStorage.setItem("recordsList", payload.recordsList);
+      if (payload.profile != null) {
+        state.profile = payload.profile;
+        let url = "https://ipfs.io/ipfs/";
+        let cid = payload.profile.image.original.src.slice(7);
+        state.profilePic = url + cid;
+        localStorage.setItem("profilePic", state.profilePic);
+        localStorage.setItem("basicProfile", JSON.stringify(payload.profile));
+      }
+    },
+    currentRecord(state, payload) {
+      state.currentRecord = payload.currentRecord;
+      console.log(payload.currentRecord);
+      localStorage.setItem(
+        "currentRecord",
+        JSON.stringify(payload.currentRecord)
+      );
     },
     onlyDIDLogout(state) {
       state.did = "";
       localStorage.setItem("did", null);
+    },
+    logout(state) {
+      state.did = "";
+      state.currentRecord = {};
+      state.profile = {};
+      state.recordsList = [];
+      state.profilePic = "";
     },
   },
   actions: {
@@ -409,19 +451,14 @@ export default new Vuex.Store({
 
         console.log(recordsUpdated);
 
-        const profile = (await store.get("basicProfile")) ?? {};
-        console.log(profile);
-
         const allRecords = (await store.get("RecordsList")) ?? {
           records: [],
         };
         console.log(allRecords);
 
-        commit("storeProfileAndRecords", {
-          profile,
+        commit("storeRecords", {
           recordsList: allRecords.records,
         });
-        console.log(profile);
         return true;
       } catch (error) {
         console.error(error);
@@ -489,22 +526,70 @@ export default new Vuex.Store({
         console.error(error);
       }
     },
+    async decryptRecord({ commit }, payload) {
+      try {
+        const ethereumProvider = await web3Modal.connect();
+        console.log(ethereumProvider);
+        console.log("selectedAddress " + ethereumProvider.selectedAddress);
+        const addresses = await ethereumProvider.enable();
+        console.log("addresses\n\n");
+        const account = addresses[0];
+        console.log(addresses);
+
+        const authProvider = new EthereumAuthProvider(
+          ethereumProvider,
+          account
+        );
+        // Connect the created EthereumAuthProvider to the 3ID Connect instance so it can be used to
+        // generate the authentication secret
+        await threeID.connect(authProvider);
+
+        // const ceramic = new CeramicClient()
+        const did = new DID({
+          // Get the DID provider from the 3ID Connect instance
+          provider: threeID.getDidProvider(),
+          resolver: {
+            ...get3IDResolver(ceramic),
+            ...getKeyResolver(),
+          },
+        });
+
+        // Authenticate the DID using the 3ID provider from 3ID Connect, this will trigger the
+        // authentication flow using 3ID Connect and the Ethereum provider
+        await did.authenticate();
+
+        // The Ceramic client can create and update streams using the authenticated DID
+        ceramic.did = did;
+        console.log(did.id);
+
+        console.log(payload);
+        const jweCID = CID.parse(payload.id);
+        console.log(jweCID);
+        const dagJWE = await ipfs.dag.get(jweCID);
+        console.log(dagJWE);
+        const decryptedRecord = await did.decryptDagJWE(dagJWE.value);
+        console.log(decryptedRecord);
+        commit("currentRecord", { currentRecord: decryptedRecord });
+
+        if (decryptedRecord != null) {
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error(error);
+        return false;
+      }
+    },
     async updateProfile({ commit }, payload) {
       const ethereumProvider = await web3Modal.connect();
-      // Request accounts from the Ethereum provider
-      ethereumProvider._portis.isLoggedIn().then(() => {
-        console.log("Portis logged in");
-      });
+      console.log(ethereumProvider);
+      console.log("selectedAddress " + ethereumProvider.selectedAddress);
+      const addresses = await ethereumProvider.enable();
+      console.log("addresses\n\n");
+      const account = addresses[0];
+      console.log(addresses);
 
-      console.log(ethereumProvider.portis.isLoggedIn());
-      const accounts = await ethereumProvider.request({
-        method: "eth_requestAccounts",
-      });
-      // Create an EthereumAuthProvider using the Ethereum provider and requested account
-      const authProvider = new EthereumAuthProvider(
-        ethereumProvider,
-        accounts[0]
-      );
+      const authProvider = new EthereumAuthProvider(ethereumProvider, account);
       // Connect the created EthereumAuthProvider to the 3ID Connect instance so it can be used to
       // generate the authentication secret
       await threeID.connect(authProvider);
@@ -526,18 +611,21 @@ export default new Vuex.Store({
       // The Ceramic client can create and update streams using the authenticated DID
       ceramic.did = did;
       console.log(did.id);
-      const model = new DataModel({ ceramic, aliases: {} });
-      const url = model.getSchemaURL();
-      console.log(url);
-      const dataStore = new DIDDataStore({ ceramic, model });
-      console.log(profile);
+
+      const manager = new ModelManager({ ceramic });
+      manager.addJSONModel(basicProfileModel);
+      const aliases = await manager.deploy();
+      console.log(aliases);
+      const model = new DataModel({ ceramic, aliases });
+      const store = new DIDDataStore({ ceramic, model });
 
       console.log("Logging from vuex");
-      console.log(payload.selectedImage);
 
       let imgurl = await infuraUpload(payload.selectedImage);
       console.log(payload.imageWidth);
       console.log(payload.imageHeight);
+
+      console.log(imgurl);
 
       let imgSrc = {
         original: {
@@ -549,11 +637,11 @@ export default new Vuex.Store({
       };
       payload.profile.image = imgSrc;
 
-      const profile = await dataStore.get("basicProfile", payload.profile);
+      const profile = await store.set("basicProfile", payload.profile);
       console.log(profile);
 
       setTimeout(() => {
-        commit("updateProfile", { profile: profile });
+        commit("storeProfile", { profile: profile });
       }, 2000);
     },
   },

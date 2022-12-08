@@ -24,7 +24,7 @@
         <template #end>
             <b-navbar-item tag="div">
                 <div class="buttons">
-                    <b-button type="is-danger" @click="onlyDIDLogout">Logout</b-button>
+                    <b-button type="is-danger" @click="completeLogout">Logout</b-button>
                 </div>
             </b-navbar-item>
         </template>
@@ -62,10 +62,10 @@ export default {
                 window.open(route.href, '_self')
             }, 2500)
         },
-        onlyDIDLogout() {
+        completeLogout() {
             const route = this.$router.resolve({ path: '/' })
             window.open(route.href, '_self')
-            this.$store.commit('onlyDIDLogout')
+            this.$store.commit('logout')
         }
     }
 }

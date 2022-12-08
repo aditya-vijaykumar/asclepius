@@ -7,6 +7,7 @@ import EditProfileScreen from "./views/EditProfileScreen.vue";
 import ProfileScreen from "./views/ProfileScreen.vue";
 import NewRecordScreen from "./views/NewRecord.vue";
 import NotFound from "./views/NotFound.vue";
+import DisplayRecord from "./views/DisplayRecord.vue";
 
 Vue.use(VueRouter);
 
@@ -40,6 +41,11 @@ const routes = [
     path: "/new-record",
     name: "NewRecord",
     components: { default: NewRecordScreen, header: AppHeader },
+  },
+  {
+    path: "/record/:id",
+    name: "DisplayRecord",
+    components: { default: DisplayRecord, header: AppHeader },
   },
   {
     path: "*",
