@@ -59,46 +59,6 @@
                 </div>
             </div>
         </div>
-
-        <vs-dialog v-model="active">
-            <template #header>
-                <h4 class="not-margin">Sharing Health Record</h4>
-            </template>
-
-            <div class="con-form" style="width: 400px; text-align: center; padding: 0px 0px">
-                <p style="color: #000">
-                    Select the QR Code image of the Doctor.
-                </p>
-                <!-- <div class="center">
-
-                    <qrcode-capture @decode="onDecode" />
-                </div> -->
-                <div class="formgroup" style="display: block; align-items: center; padding: 20px 100px"
-                    v-if="result != ''">
-                    <div class="app-form-group">
-                        <label for="name">Name
-                            <input class="app-form-control" placeholder="Name" v-model="name" readonly></label>
-                    </div>
-                    <div class="app-form-group">
-                        <label for="name">DID
-                            <input class="app-form-control" placeholder="did" v-model="did" readonly></label>
-                    </div>
-                    <div class="app-form-group">
-                        <label for="name">Session ID
-                            <input class="app-form-control" placeholder="Session ID" v-model="sessionID"
-                                readonly></label>
-                    </div>
-                    <br />
-
-                </div>
-            </div>
-
-            <template #footer>
-                <div class="footer-dialog">
-                    <vs-button block @click="shareDoc" v-if="result != ''"> Confirm and Submit </vs-button>
-                </div>
-            </template>
-        </vs-dialog>
     </div>
 </template>
 
@@ -360,8 +320,7 @@ export default {
   },
   methods: {
     dashboard() {
-      let route = this.$router.resolve({ path: "/dashboard" });
-      window.open(route.href, "_self");
+       this.$router.back();
     },
     // async shareDoc() {
     //   let payload = {

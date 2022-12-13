@@ -1,30 +1,24 @@
 import Vue from "vue";
 import Vuex from "vuex";
 import VuexPersistence from "vuex-persist";
-// import modelAliases from "./model.json";
 Vue.use(Vuex);
 
-import { CeramicClient } from "@ceramicnetwork/http-client";
-// Import DID client
 import { DID } from "dids";
-// import Web3 from "web3";
-
+import { CeramicClient } from "@ceramicnetwork/http-client";
 import { getResolver as getKeyResolver } from "key-did-resolver";
 import { getResolver as get3IDResolver } from "@ceramicnetwork/3id-did-resolver";
 import { EthereumAuthProvider, ThreeIdConnect } from "@3id/connect";
 
 import { DataModel } from "@glazed/datamodel";
 import { DIDDataStore } from "@glazed/did-datastore";
-// import { basicProfileModel as aliases } from "../utils/basicProfileModel";
 import { ModelManager } from "@glazed/devtools";
 import { model as basicProfileModel } from "@datamodels/identity-profile-basic";
 import { model as healthRecordsModel } from "./model.json";
 import { convert as toLegacyIpld } from "blockcodec-to-ipld-format";
 import * as dagJose from "dag-jose";
-
 import { CID, create } from "ipfs-http-client";
-// import { prepareCleartext } from "dag-jose-utils";
 
+import { ethers } from "ethers";
 import Web3Modal from "web3modal";
 import Portis from "@portis/web3";
 import WalletConnectProvider from "@walletconnect/web3-provider";
@@ -56,13 +50,13 @@ const providerOptions = {
   portis: {
     package: Portis, // required
     options: {
-      id: "c34c4e23-495d-4bfe-b5e6-9c3ea2de217a", // required
+      id: process.env.VUE_APP_PORTIS_KEY, // required
     },
   },
   walletconnect: {
     package: WalletConnectProvider, // required
     options: {
-      infuraId: "e455e5fdffb8463295a0f641346994d8", // required
+      infuraId: process.env.VUE_APP_INFURA_KEY, // required
     },
   },
 };
@@ -80,6 +74,8 @@ export default new Vuex.Store({
     ipfs: {},
     recordsList: [],
     did: "",
+    didObj: {},
+    didStoreObj: {},
     ethaddress: "",
     currentRecord: {},
     profile: {
@@ -98,13 +94,15 @@ export default new Vuex.Store({
   mutations: {
     storeDID(state, payload) {
       state.did = payload.did;
+      state.didObj = payload.didObj;
+      state.didStoreObj = payload.didStoreObj;
       localStorage.setItem("did", payload.did);
     },
     storeProfile(state, payload) {
       if (payload.profile != null) {
         state.profile = payload.profile;
         let url = "https://ipfs.io/ipfs/";
-        let cid = payload.profile.image.original.src.slice(7);
+        let cid = payload.profile.image?.original?.src?.slice(7);
         state.profilePic = url + cid;
         localStorage.setItem("profilePic", state.profilePic);
         localStorage.setItem("basicProfile", JSON.stringify(payload.profile));
@@ -144,66 +142,36 @@ export default new Vuex.Store({
       state.profile = {};
       state.recordsList = [];
       state.profilePic = "";
+      state.didObj = {};
+      state.didStoreObj = {};
     },
   },
   actions: {
-    async authenticateCeramic({ commit }) {
-      try {
-        const ethereumProvider = await web3Modal.connect();
-        console.log(ethereumProvider);
-        console.log("selectedAddress " + ethereumProvider.selectedAddress);
-        const addresses = await ethereumProvider.enable();
-        console.log("addresses\n\n");
-        const account = addresses[0];
-        console.log(addresses);
-
-        const authProvider = new EthereumAuthProvider(
-          ethereumProvider,
-          account
-        );
-        // Connect the created EthereumAuthProvider to the 3ID Connect instance so it can be used to
-        // generate the authentication secret
-        await threeID.connect(authProvider);
-
-        // const ceramic = new CeramicClient()
-        const did = new DID({
-          // Get the DID provider from the 3ID Connect instance
-          provider: threeID.getDidProvider(),
-          resolver: {
-            ...get3IDResolver(ceramic),
-            ...getKeyResolver(),
-          },
-        });
-
-        // Authenticate the DID using the 3ID provider from 3ID Connect, this will trigger the
-        // authentication flow using 3ID Connect and the Ethereum provider
-        await did.authenticate();
-
-        // The Ceramic client can create and update streams using the authenticated DID
-        ceramic.did = did;
-        console.log(did.id);
-        commit("storeDID", {
-          did: did.id,
-        });
-        return true;
-      } catch (error) {
-        console.log(error);
-        return false;
-      }
-    },
     async authenticateAndFetchData({ commit }) {
       try {
         const ethereumProvider = await web3Modal.connect();
-        console.log(ethereumProvider);
+        const provider = new ethers.providers.Web3Provider(ethereumProvider);
+        const signer = provider.getSigner(0);
+
+        const addressByProvider = await signer.getAddress();
+        console.log(`addressByProvider: ${addressByProvider}`);
+        // ethereumProvider._portis.isLoggedIn().then(() => {
+        //   console.log("Portis logged in");
+        // });
+        // Request accounts from the Ethereum provider
+        const accounts = await ethereumProvider.request({
+          method: "eth_requestAccounts",
+        });
+        console.log(accounts[0]);
         console.log("selectedAddress " + ethereumProvider.selectedAddress);
         const addresses = await ethereumProvider.enable();
         console.log("addresses\n\n");
-        const account = addresses[0];
+        // const account = addresses[0];
         console.log(addresses);
 
         const authProvider = new EthereumAuthProvider(
-          ethereumProvider,
-          account
+          provider.provider,
+          addressByProvider
         );
         // Connect the created EthereumAuthProvider to the 3ID Connect instance so it can be used to
         // generate the authentication secret
@@ -244,6 +212,8 @@ export default new Vuex.Store({
         console.log(allRecords);
         commit("storeDID", {
           did: did.id,
+          didObj: did,
+          didStoreObj: store,
         });
         commit("storeProfileAndRecords", {
           profile,
@@ -256,174 +226,13 @@ export default new Vuex.Store({
         return false;
       }
     },
-    async testSchemas() {
+    async encryptStore({ commit, state }, payload) {
       try {
-        const ethereumProvider = await web3Modal.connect();
-        console.log(ethereumProvider);
-        console.log("selectedAddress " + ethereumProvider.selectedAddress);
-        const addresses = await ethereumProvider.enable();
-        console.log("addresses\n\n");
-        const account = addresses[0];
-        console.log(addresses);
-
-        const authProvider = new EthereumAuthProvider(
-          ethereumProvider,
-          account
-        );
-        // Connect the created EthereumAuthProvider to the 3ID Connect instance so it can be used to
-        // generate the authentication secret
-        await threeID.connect(authProvider);
-
-        // const ceramic = new CeramicClient()
-        const did = new DID({
-          // Get the DID provider from the 3ID Connect instance
-          provider: threeID.getDidProvider(),
-          resolver: {
-            ...get3IDResolver(ceramic),
-            ...getKeyResolver(),
-          },
-        });
-
-        // Authenticate the DID using the 3ID provider from 3ID Connect, this will trigger the
-        // authentication flow using 3ID Connect and the Ethereum provider
-        await did.authenticate();
-
-        // The Ceramic client can create and update streams using the authenticated DID
-        ceramic.did = did;
-        console.log(did.id);
-
-        // console.log(modelAliases);
-        const manager = new ModelManager({ ceramic });
-        manager.addJSONModel(basicProfileModel);
-        manager.addJSONModel(healthRecordsModel);
-
-        console.log(healthRecordsModel);
-
-        const aliases = await manager.deploy();
-
-        // const aliases = {
-        //   schemas: {
-        //     HealthRecordsSchema:
-        //       "ceramic://k3y52l7qbv1frydfi8cnwenycbcijktr8br1pdgwwdaoe6mpwmyvj8bebxt6raneo",
-        //   },
-        //   definitions: {
-        //     RecordsList:
-        //       "k3y52l7qbv1frxozbetu4jrwakdq2zrdkm82phy5gjomptp2f49b7u0alljckbocg",
-        //   },
-        //   tiles: {},
-        // };
-        console.log(aliases);
-
-        const model = new DataModel({ ceramic, aliases });
-        console.log(model);
-
-        console.log(model.getSchemaURL("HealthRecordsSchema"));
-        console.log(model.getDefinitionID("RecordsList"));
-        const store = new DIDDataStore({ ceramic, model });
-        console.log(store);
-        await store.set("basicProfile", {
-          name: "Abraham Benjamin DeVillers",
-        });
-        const profile = await store.get("basicProfile");
-        console.log(profile);
-      } catch (error) {
-        console.error(error);
-      }
-    },
-    async schemas() {
-      try {
-        const manager = new ModelManager({ ceramic });
-        manager.addJSONModel(basicProfileModel);
-
-        console.log(basicProfileModel);
-        console.log("\n");
-        const resp = await manager.createSchema("MySchema", {
-          $schema: "http://json-schema.org/draft-07/schema#",
-          title: "MySchema",
-          type: "object",
-          properties: {
-            records: {
-              type: "array",
-              title: "records",
-              items: {
-                type: "object",
-                properties: {
-                  id: {
-                    type: "string",
-                    title: "rId",
-                  },
-                  title: {
-                    type: "integer",
-                    title: "title",
-                  },
-                },
-              },
-            },
-          },
-        });
-
-        console.log(resp);
-
-        const model = manager.toJSON();
-
-        console.log("\n");
-        console.log(model);
-
-        // const aliases = await manager.deploy();
-        // console.log(aliases);
-      } catch (error) {
-        console.log(error);
-      }
-    },
-    async encryptStore({ commit }, payload) {
-      try {
-        const ethereumProvider = await web3Modal.connect();
-        console.log(ethereumProvider);
-        console.log("selectedAddress " + ethereumProvider.selectedAddress);
-        const addresses = await ethereumProvider.enable();
-        console.log("addresses\n\n");
-        const account = addresses[0];
-        console.log(addresses);
-
-        const authProvider = new EthereumAuthProvider(
-          ethereumProvider,
-          account
-        );
-        // Connect the created EthereumAuthProvider to the 3ID Connect instance so it can be used to
-        // generate the authentication secret
-        await threeID.connect(authProvider);
-
-        // const ceramic = new CeramicClient()
-        const did = new DID({
-          // Get the DID provider from the 3ID Connect instance
-          provider: threeID.getDidProvider(),
-          resolver: {
-            ...get3IDResolver(ceramic),
-            ...getKeyResolver(),
-          },
-        });
-
-        // Authenticate the DID using the 3ID provider from 3ID Connect, this will trigger the
-        // authentication flow using 3ID Connect and the Ethereum provider
-        await did.authenticate();
-
-        // The Ceramic client can create and update streams using the authenticated DID
-        ceramic.did = did;
-        console.log(did.id);
-
-        const manager = new ModelManager({ ceramic });
-        manager.addJSONModel(basicProfileModel);
-        manager.addJSONModel(healthRecordsModel);
-        const aliases = await manager.deploy();
-        console.log(aliases);
-        const model = new DataModel({ ceramic, aliases });
-        const store = new DIDDataStore({ ceramic, model });
-
         //Storing the records
         const record = payload.record;
 
         // encrypt the record object
-        const jwe = await did.createDagJWE(record, [did.id]);
+        const jwe = await state.didObj.createDagJWE(record, [state.didObj.id]);
         console.log(jwe);
 
         // put the JWE into the ipfs dag
@@ -434,11 +243,11 @@ export default new Vuex.Store({
 
         console.log({ jweCid: jweCid.toString() });
 
-        const recordsResp = (await store.get("RecordsList")) ?? {
+        const recordsResp = (await state.didStoreObj.get("RecordsList")) ?? {
           records: [],
         };
 
-        const recordsUpdated = await store.set("RecordsList", {
+        const recordsUpdated = await state.didStoreObj.set("RecordsList", {
           records: [
             {
               id: jweCid.toString(),
@@ -451,7 +260,7 @@ export default new Vuex.Store({
 
         console.log(recordsUpdated);
 
-        const allRecords = (await store.get("RecordsList")) ?? {
+        const allRecords = (await state.didStoreObj.get("RecordsList")) ?? {
           records: [],
         };
         console.log(allRecords);
@@ -462,68 +271,7 @@ export default new Vuex.Store({
         return true;
       } catch (error) {
         console.error(error);
-      }
-    },
-    async encryptAndStore() {
-      try {
-        const ethereumProvider = await web3Modal.connect();
-        console.log(ethereumProvider);
-        console.log("selectedAddress " + ethereumProvider.selectedAddress);
-        const addresses = await ethereumProvider.enable();
-        console.log("addresses\n\n");
-        const account = addresses[0];
-        console.log(addresses);
-
-        const authProvider = new EthereumAuthProvider(
-          ethereumProvider,
-          account
-        );
-        // Connect the created EthereumAuthProvider to the 3ID Connect instance so it can be used to
-        // generate the authentication secret
-        await threeID.connect(authProvider);
-
-        // const ceramic = new CeramicClient()
-        const did = new DID({
-          // Get the DID provider from the 3ID Connect instance
-          provider: threeID.getDidProvider(),
-          resolver: {
-            ...get3IDResolver(ceramic),
-            ...getKeyResolver(),
-          },
-        });
-
-        // Authenticate the DID using the 3ID provider from 3ID Connect, this will trigger the
-        // authentication flow using 3ID Connect and the Ethereum provider
-        await did.authenticate();
-
-        // The Ceramic client can create and update streams using the authenticated DID
-        ceramic.did = did;
-        console.log(did.id);
-        const cleartext = { some: "data" };
-        // const cleartext = await prepareCleartext({ some: "data", coolLink: new CID('bafyqacnbmrqxgzdgdeaui') });
-
-        // encrypt the cleartext object
-        const jwe = await did.createDagJWE(cleartext, [did.id]);
-        console.log(jwe);
-
-        // put the JWE into the ipfs dag
-        const jweCid = await ipfs.dag.put(jwe, {
-          format: "dag-jose",
-          hashAlg: "sha2-256",
-        });
-        // const idOfJweCid = jweCid.toString();
-        // console.log(idOfJweCid);
-        // get the jwe from the dag and decrypt it
-        // const creatingCID = new CID(idOfJweCid)
-        // console.log(creatingCID)
-        const dagJWE = await ipfs.dag.get(jweCid);
-        console.log(dagJWE);
-        const decryptedStuff = await did.decryptDagJWE(dagJWE.value);
-        console.log(decryptedStuff);
-        // output:
-        // > { some: 'data' }
-      } catch (error) {
-        console.error(error);
+        return false;
       }
     },
     async decryptRecord({ commit }, payload) {
@@ -580,69 +328,55 @@ export default new Vuex.Store({
         return false;
       }
     },
-    async updateProfile({ commit }, payload) {
-      const ethereumProvider = await web3Modal.connect();
-      console.log(ethereumProvider);
-      console.log("selectedAddress " + ethereumProvider.selectedAddress);
-      const addresses = await ethereumProvider.enable();
-      console.log("addresses\n\n");
-      const account = addresses[0];
-      console.log(addresses);
+    async decryptRecordWithState({ commit, state }, payload) {
+      try {
+        console.log(payload);
+        const jweCID = CID.parse(payload.id);
+        console.log(jweCID);
+        const dagJWE = await ipfs.dag.get(jweCID);
+        console.log(dagJWE);
+        const decryptedRecord = await state.didObj.decryptDagJWE(dagJWE.value);
+        console.log(decryptedRecord);
+        commit("currentRecord", { currentRecord: decryptedRecord });
 
-      const authProvider = new EthereumAuthProvider(ethereumProvider, account);
-      // Connect the created EthereumAuthProvider to the 3ID Connect instance so it can be used to
-      // generate the authentication secret
-      await threeID.connect(authProvider);
+        if (decryptedRecord != null) {
+          return true;
+        }
+        return false;
+      } catch (error) {
+        console.error(error);
+        return false;
+      }
+    },
+    async updateProfile({ commit, state }, payload) {
+      try {
+        let imgurl = state.profilePic;
+        let imgSrc = state.profile.image;
+        if (payload.selectedImage) {
+          imgurl = await infuraUpload(payload.selectedImage);
+          imgSrc = {
+            original: {
+              src: imgurl,
+              height: payload.imageHeight,
+              width: payload.imageWidth,
+              mimeType: payload.selectedImage.type,
+            },
+          };
+        }
+        payload.profile.image = imgSrc;
 
-      // const ceramic = new CeramicClient()
-      const did = new DID({
-        // Get the DID provider from the 3ID Connect instance
-        provider: threeID.getDidProvider(),
-        resolver: {
-          ...get3IDResolver(ceramic),
-          ...getKeyResolver(),
-        },
-      });
+        await state.didStoreObj.set("basicProfile", payload.profile);
+        const profile = await state.didStoreObj.get("basicProfile");
+        console.log(profile);
 
-      // Authenticate the DID using the 3ID provider from 3ID Connect, this will trigger the
-      // authentication flow using 3ID Connect and the Ethereum provider
-      await did.authenticate();
-
-      // The Ceramic client can create and update streams using the authenticated DID
-      ceramic.did = did;
-      console.log(did.id);
-
-      const manager = new ModelManager({ ceramic });
-      manager.addJSONModel(basicProfileModel);
-      const aliases = await manager.deploy();
-      console.log(aliases);
-      const model = new DataModel({ ceramic, aliases });
-      const store = new DIDDataStore({ ceramic, model });
-
-      console.log("Logging from vuex");
-
-      let imgurl = await infuraUpload(payload.selectedImage);
-      console.log(payload.imageWidth);
-      console.log(payload.imageHeight);
-
-      console.log(imgurl);
-
-      let imgSrc = {
-        original: {
-          src: imgurl,
-          height: payload.imageHeight,
-          width: payload.imageWidth,
-          mimeType: payload.selectedImage.type,
-        },
-      };
-      payload.profile.image = imgSrc;
-
-      const profile = await store.set("basicProfile", payload.profile);
-      console.log(profile);
-
-      setTimeout(() => {
-        commit("storeProfile", { profile: profile });
-      }, 2000);
+        setTimeout(() => {
+          commit("storeProfile", { profile: profile });
+        }, 2000);
+        return true;
+      } catch (error) {
+        console.error(error);
+        return false;
+      }
     },
   },
   plugins: [new VuexPersistence().plugin],

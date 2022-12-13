@@ -6,15 +6,15 @@
             </b-navbar-item>
         </template>
         <template #start>
-            <b-navbar-item href="/dashboard">
+            <b-navbar-item @click="$router.push('/dashboard')">
                 Home
             </b-navbar-item>
-            <b-navbar-item href="/profile">
+            <b-navbar-item @click="$router.push('/profile')">
                 Profile
             </b-navbar-item>
             <b-navbar-item tag="div">
                 <div class="buttons">
-                    <a class="button is-warning" href="/new-record">
+                    <a class="button is-warning" @click="$router.push('/new-record')">
                         <strong>New Record</strong>
                     </a>
                 </div>
@@ -46,12 +46,8 @@ export default {
                 loading.close()
             }, 2500)
         },
-        auth() {
-            this.$store.dispatch('ceramicAuth')
-        },
         newRecord() {
-            const route = this.$router.resolve({ path: '/new' })
-            window.open(route.href, '_self')
+            this.$router.push('/new')
         },
         async logout() {
             const loading = this.$vs.loading()
