@@ -1,7 +1,7 @@
 <template>
   <div class="home">
     <div>
-      <app-header> </app-header>
+      <doc-app-header> </doc-app-header>
     </div>
     <div class="hero">
       <div class="overlay"></div>
@@ -48,7 +48,7 @@
                     label="Start"
                     type="is-dark"
                     size="is-medium"
-                    @click="$router.push('/connect')"
+                    @click="$router.push('/doctor/connect')"
                   />
                 </b-tooltip>
               </article>
@@ -87,140 +87,45 @@
         </div>
       </div>
     </section>
-    <h1>All your Health Records will appear here</h1>
-
-    <div class="center grid">
-      <vs-row>
-        <vs-col vs-type="flex" vs-justify="center" vs-align="center" w="3">
-        </vs-col>
-        <vs-col
-          vs-type="flex"
-          vs-justify="center"
-          vs-align="center"
-          w="6"
-          class="mb-3"
-        >
-          <section>
-            <b-table :data="recordsList">
-              <b-table-column
-                field="id"
-                centered
-                label="ID"
-                width="40"
-                numeric
-                v-slot="props"
-              >
-                {{ props.index + 1 }}
-              </b-table-column>
-
-              <b-table-column
-                field="first_name"
-                centered
-                width="200"
-                label="Record Title"
-                sortable
-                v-slot="props"
-              >
-                {{ props.row.title }}
-              </b-table-column>
-
-              <b-table-column
-                field="date"
-                label="Date"
-                width="120"
-                centered
-                v-slot="props"
-              >
-                <span>
-                  <b-tag type="is-success"
-                    >{{ new Date(props.row.date).toLocaleDateString() }}
-                  </b-tag>
-                </span>
-              </b-table-column>
-
-              <b-table-column
-                field="cid"
-                label="C-ID"
-                width="120"
-                centered
-                v-slot="props"
-              >
-                <b-tooltip :label="props.row.id" type="is-dark" dashed>
-                  {{ props.row.id.slice(0, 4) }}...{{ props.row.id.slice(-4) }}
-                </b-tooltip>
-              </b-table-column>
-
-              <b-table-column
-                label="Action"
-                centered
-                width="120"
-                v-slot="props"
-              >
-                <span>
-                  <b-button
-                    size="is-small"
-                    type="is-primary"
-                    @click="openRecord(props.row.id)"
-                    >Open</b-button
-                  >
-                </span>
-              </b-table-column>
-            </b-table>
-            <hr />
-          </section>
-        </vs-col>
-      </vs-row>
-    </div>
 
     <!-- <div class="center">
-            <vs-dialog v-model="active">
-                <template #header>
-                    <h4 class="not-margin">QR COde <b>Generator</b></h4>
-                </template>
+              <vs-dialog v-model="active">
+                  <template #header>
+                      <h4 class="not-margin">QR COde <b>Generator</b></h4>
+                  </template>
+  
+                  <div class="con-form">
+                      <canvas id="canvas"></canvas>
+                  </div>
+  
+                  <template #footer>
+                      <div class="footer-dialog">
+                          <vs-button block @click="createQRCode">
+                              Generate QR Code
+                          </vs-button>
+                      </div>
+                  </template>
+              </vs-dialog>
+          </div> -->
 
-                <div class="con-form">
-                    <canvas id="canvas"></canvas>
-                </div>
+    <b-loading :is-full-page="isFullPage" v-model="isLoading"> </b-loading>
 
-                <template #footer>
-                    <div class="footer-dialog">
-                        <vs-button block @click="createQRCode">
-                            Generate QR Code
-                        </vs-button>
-                    </div>
-                </template>
-            </vs-dialog>
-        </div> -->
-
-    <b-notification :closable="false">
-      <b-loading :is-full-page="isFullPage" v-model="isLoading">
-        <b-icon
-          pack="fas"
-          icon="sync-alt"
-          size="is-large"
-          custom-class="fa-spin"
-        >
-        </b-icon>
-      </b-loading>
-    </b-notification>
-
-    <br />
-    <br />
     <app-footer></app-footer>
   </div>
 </template>
 
 <script>
 // @ is an alias to /src
-import AppHeader from "../layout/AppHeader.vue";
-import AppFooter from "../layout/AppFooter.vue";
+import DocAppHeader from "../../layout/DocAppHeader.vue";
+import AppFooter from "../../layout/AppFooter.vue";
 import { mapState } from "vuex";
-import socket from "../utils/socket";
+import socket from "../../utils/socket";
+import QRcode from "qrcode";
 
 export default {
   name: "DashboardScreen",
   components: {
-    AppHeader,
+    DocAppHeader,
     AppFooter,
   },
   data() {
@@ -268,26 +173,26 @@ export default {
     };
   },
   methods: {
-    // createQRCode() {
-    //     console.log(this.socketUserID);
-    //     console.log(this.did);
-    //     let text = JSON.stringify({
-    //         sessionID: this.socketUserID,
-    //         did: this.did,
-    //     });
-    //     let canvas = document.getElementById("canvas");
-
-    //     QRcode.toCanvas(canvas, text, function (err) {
-    //         if (err) console.error(err);
-    //         console.log("successfully generated QR Code");
-    //     });
-    // },
-    alertCustom() {
-      this.$buefy.dialog.alert({
-        title: "QR Code Generator",
-        message:
-          '<div class="con-form">< canvas id="canvas" ></canvas></div><vs-button block @click="createQRCode">',
+    createQRCode() {
+      console.log(this.socketUserID);
+      console.log(this.did);
+      let text = JSON.stringify({
+        sessionID: this.socketUserID,
+        did: this.did,
       });
+      let canvas = document.getElementById("canvas");
+
+      QRcode.toCanvas(canvas, text, function (err) {
+        if (err) console.error(err);
+        console.log("successfully generated QR Code");
+      });
+    },
+    alertCustom() {
+      // this.$buefy.dialog.alert({
+      //   title: "QR Code Generator",
+      //   message:
+      //     '<div class="con-form">< canvas id="canvas" ></canvas></div><vs-button block @click="createQRCode">',
+      // });
     },
     openLoading() {
       const loading = this.$vs.loading();
@@ -317,13 +222,13 @@ export default {
     async openRecord(id) {
       this.isLoading = true;
       this.$store
-        .dispatch("decryptRecordWithState", { id })
+        .dispatch("doctor/decryptRecordWithState", { id })
         .then((boolFlag) => {
           this.isLoading = false;
           if (boolFlag) {
             this.success();
             setTimeout(() => {
-              this.$router.push("/record/" + id);
+              this.$router.push("/doctor/record/" + id);
             }, 1000);
           } else {
             this.danger();
@@ -347,7 +252,7 @@ export default {
       };
       console.log(payload);
       const loading = this.$vs.loading();
-      await this.$store.dispatch("retireve", payload);
+      await this.$store.dispatch("doctor/retireve", payload);
       setTimeout(() => {
         loading.close();
       }, 3000);
@@ -414,7 +319,14 @@ export default {
     socket.off("private message");
   },
   computed: {
-    ...mapState(["recordsList", "did", "ethaddress", "profile", "profilePic"]),
+    //   ...mapState(["recordsList", "did", "ethaddress", "profile", "profile"]),
+    ...mapState("doctor", {
+      recordsList: (state) => state.recordsList,
+      did: (state) => state.did,
+      ethaddress: (state) => state.ethaddress,
+      profile: (state) => state.profile,
+      profilePic: (state) => state.profilePic,
+    }),
   },
 };
 </script>
@@ -426,7 +338,7 @@ export default {
 .hero {
   height: 550px;
   width: 100%;
-  background-image: url("../../public/ArtboardWide.jpg");
+  background-image: url("../../../public/ArtboardWide.jpg");
   background-size: cover;
   background-repeat: no-repeat;
   background-position: center;

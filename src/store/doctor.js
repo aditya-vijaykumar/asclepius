@@ -1,6 +1,5 @@
 import Vue from "vue";
 import Vuex from "vuex";
-import VuexPersistence from "vuex-persist";
 Vue.use(Vuex);
 
 import { DID } from "dids";
@@ -16,17 +15,14 @@ import { model as basicProfileModel } from "@datamodels/identity-profile-basic";
 import { model as healthRecordsModel } from "./model.json";
 import { convert as toLegacyIpld } from "blockcodec-to-ipld-format";
 import * as dagJose from "dag-jose";
-import { CID, create } from "ipfs-http-client";
+import { create } from "ipfs-http-client";
 
 import { ethers } from "ethers";
 import Web3Modal from "web3modal";
 import Portis from "@portis/web3";
 import WalletConnectProvider from "@walletconnect/web3-provider";
-import { doctorsModule } from "./doctor";
 import socket from "../utils/socket";
 
-// Connect to a Ceramic node
-// const API_URL = "https://ceramic-clay.3boxlabs.com";
 const API_URL = "http://localhost:7007/";
 
 // Create the Ceramic object
@@ -68,7 +64,8 @@ const web3Modal = new Web3Modal({
   providerOptions, // required
 });
 
-export default new Vuex.Store({
+export const doctorsModule = {
+  namespaced: true,
   state: {
     authenticated: false,
     idx: {},
@@ -89,9 +86,8 @@ export default new Vuex.Store({
       image: null,
     },
     profilePic: "",
-    session: {
+    patientSession: {
       connected: false,
-      doctor: false,
       did: "",
       name: "",
       userSocketId: "",
@@ -122,6 +118,10 @@ export default new Vuex.Store({
     storeRecords(state, payload) {
       state.recordsList = payload.recordsList;
       localStorage.setItem("recordsList", payload.recordsList);
+    },
+    pushNewRecord(state, payload) {
+      state.recordsList.push(payload.record);
+      localStorage.setItem("recordsList", state.recordsList);
     },
     storeProfileAndRecords(state, payload) {
       state.recordsList = payload.recordsList;
@@ -156,9 +156,8 @@ export default new Vuex.Store({
       state.profilePic = "";
       state.didObj = {};
       state.didStoreObj = {};
-      state.session = {
+      state.patientSession = {
         connected: false,
-        doctor: false,
         did: "",
         name: "",
         userSocketId: "",
@@ -166,12 +165,11 @@ export default new Vuex.Store({
       };
     },
     storeConnectionDetails(state, payload) {
-      state.session = payload.session;
+      state.patientSession = payload.session;
     },
-    resetSession(state) {
-      state.session = {
+    resetPatientSession(state) {
+      state.patientSession = {
         connected: false,
-        doctor: false,
         did: "",
         name: "",
         userSocketId: "",
@@ -226,7 +224,7 @@ export default new Vuex.Store({
 
         // The Ceramic client can create and update streams using the authenticated DID
         ceramic.did = did;
-        console.log(did.id);
+        console.log({did});
 
         const manager = new ModelManager({ ceramic });
         manager.addJSONModel(basicProfileModel);
@@ -239,10 +237,6 @@ export default new Vuex.Store({
         const profile = (await store.get("basicProfile")) ?? {};
         console.log(profile);
 
-        const allRecords = (await store.get("RecordsList")) ?? {
-          records: [],
-        };
-        console.log(allRecords);
         commit("storeDID", {
           did: did.id,
           didObj: did,
@@ -250,7 +244,7 @@ export default new Vuex.Store({
         });
         commit("storeProfileAndRecords", {
           profile,
-          recordsList: allRecords.records,
+          recordsList: [],
         });
         console.log(profile);
         return true;
@@ -259,72 +253,14 @@ export default new Vuex.Store({
         return false;
       }
     },
-    async encryptStore({ commit, state }, payload) {
-      try {
-        //Storing the records
-        const record = payload.record;
-
-        // encrypt the record object
-        // const jwe = await state.didObj.createDagJWE(record, [state.didObj.id]);
-        console.log({ jwe: record.recordData });
-        const decryptedRecord = await state.didObj.decryptDagJWE(
-          record.recordData
-        );
-        console.log({ decryptedRecord });
-
-        // put the JWE into the ipfs dag
-        const jweCid = await ipfs.dag.put(record.recordData, {
-          format: "dag-jose",
-          hashAlg: "sha2-256",
-        });
-
-        console.log({ jweCid: jweCid.toString() });
-
-        const recordsResp = (await state.didStoreObj.get("RecordsList")) ?? {
-          records: [],
-        };
-
-        const recordsUpdated = await state.didStoreObj.set("RecordsList", {
-          records: [
-            {
-              id: jweCid.toString(),
-              title: record.title,
-              date: record.date,
-            },
-            ...recordsResp.records,
-          ],
-        });
-        // const recordsUpdated = await state.didStoreObj.set("RecordsList", {
-        //   records: [],
-        // });
-
-        console.log(recordsUpdated);
-
-        const allRecords = (await state.didStoreObj.get("RecordsList")) ?? {
-          records: [],
-        };
-        console.log(allRecords);
-
-        commit("storeRecords", {
-          recordsList: allRecords.records,
-        });
-        return true;
-      } catch (error) {
-        console.error(error);
-        return false;
-      }
-    },
     async decryptRecordWithState({ commit, state }, payload) {
       try {
-        console.log(payload);
-        const jweCID = CID.parse(payload.id);
-        console.log(jweCID);
-        const dagJWE = await ipfs.dag.get(jweCID);
-        console.log(dagJWE);
-        const decryptedRecord = await state.didObj.decryptDagJWE(dagJWE.value);
-        console.log(decryptedRecord);
+        console.log({ recordData: payload.recordData });
+        const decryptedRecord = await state.didObj.decryptDagJWE(
+          payload.recordData
+        );
+        console.log({ decryptedRecord });
         commit("currentRecord", { currentRecord: decryptedRecord });
-
         if (decryptedRecord != null) {
           return true;
         }
@@ -364,10 +300,45 @@ export default new Vuex.Store({
         return false;
       }
     },
-    // for doctor
+    async connectionAccepted({ commit, state }, payload) {
+      try {
+        const { from, did, name, encMsg } = payload;
+        const jwe = await state.didObj.decryptDagJWE(encMsg);
+        console.log({ jwe });
+        const connectedTillDateString = jwe.connectedTill;
+        console.log({ connectedTillDateString });
+        const connectedTill = new Date(connectedTillDateString);
+
+        console.log({
+          session: {
+            connected: true,
+            did: did,
+            name: name,
+            userSocketId: from,
+            connectedTill: connectedTill,
+          },
+        });
+
+        commit("storeConnectionDetails", {
+          session: {
+            connected: true,
+            did: did,
+            name: name,
+            userSocketId: from,
+            connectedTill: connectedTill,
+          },
+        });
+        console.log({ storeSession: state.patientSession });
+
+        return true;
+      } catch (error) {
+        console.error(error);
+        return false;
+      }
+    },
     async acceptConnection({ commit, state }, payload) {
       try {
-        const { from, did, name, role } = payload;
+        const { from, did, name } = payload;
         // Get the current timestamp in milliseconds
         const now = new Date().getTime();
         // Add 60 minutes (60 * 60 * 1000 milliseconds) to the current timestamp
@@ -375,11 +346,10 @@ export default new Vuex.Store({
         // Convert the timestamp to a Date object
         const date60MinFromNow = new Date(timestamp60MinFromNow);
 
-        console.log({ did, from, date60MinFromNow});
+        console.log({ did, from , date60MinFromNow});
         commit("storeConnectionDetails", {
           session: {
             connected: true,
-            doctor: role == "doctor" ? true : false,
             did: did,
             name: name,
             userSocketId: from,
@@ -394,72 +364,56 @@ export default new Vuex.Store({
         socket.emit("connection accepted", {
           uName: state.profile.name,
           uDid: state.did,
-          uRole: "patient",
+          uRole: "doctor",
           encMsg: jwe,
           to: from,
         });
-        console.log({ storeSession: state.session });
+        console.log({ storeSession: state.patientSession });
       } catch (error) {
         console.error(error);
       }
     },
-    async connectionAccepted({ commit, state }, payload) {
+    async storeSharedRecords({ commit }, payload) {
+      const { arrayOfRecords } = payload;
+      commit("storeRecords", { recordsList: arrayOfRecords });
+      // for (let i = 0; i < arrayOfRecords.length; i++) {
+      //   const rec = arrayOfRecords[i];
+      //   const decryptedRecord = await state.didObj.decryptDagJWE(rec.recordData);
+      //   console.log({i, ...rec, decryptedRecord})
+      // }
+    },
+    async createSignShareNewRecord({ commit, state }, payload) {
       try {
-        const { from, did, name, encMsg } = payload;
-        const jwe = await state.didObj.decryptDagJWE(encMsg);
-        console.log({ jwe });
-        const connectedTillDateString = jwe.connectedTill;
-        console.log({ connectedTillDateString });
-        const connectedTill = new Date(connectedTillDateString);
+        const record = payload.record;
 
-        commit("storeConnectionDetails", {
-          session: {
-            connected: true,
-            did: did,
-            name: name,
-            userSocketId: from,
-            connectedTill: connectedTill,
+        const { jws } = await state.didObj.createDagJWS(record);
+
+        // encrypt the record object
+        const recordDataToShare = await state.didObj.createDagJWE(
+          { ...record, signatureByDoc: jws, didOfDoc: state.did },
+          [state.patientSession.did]
+        );
+        const recordDataForSession = await state.didObj.createDagJWE(record, [
+          state.did,
+        ]);
+        console.log({ recordDataToShare });
+        const newRecordData = {
+          recordData: recordDataToShare,
+          title: payload.record.title,
+          date: payload.record.date,
+        };
+        commit("pushNewRecord", {
+          record: {
+            recordData: recordDataForSession,
+            title: payload.record.title,
+            date: payload.record.date,
           },
         });
-        console.log({ storeSession: state.session });
+        socket.emit("share new record", {
+          recordData: newRecordData,
+          to: state.patientSession.userSocketId,
+        });
         return true;
-      } catch (error) {
-        console.error(error);
-        return false;
-      }
-    },
-    async shareSelectedRecordsInSession({ state }, payload) {
-      try {
-        const { recordsToBeShared } = payload;
-        const arrayOfRecords = [];
-        for (let i = 0; i < recordsToBeShared.length; i++) {
-          const rec = recordsToBeShared[i];
-          const jweCID = CID.parse(rec.id);
-          console.log({ jweCID });
-          const dagJWE = await ipfs.dag.get(jweCID);
-          console.log({ dagJWE });
-          const decryptedRecord = await state.didObj.decryptDagJWE(
-            dagJWE.value
-          );
-          console.log(decryptedRecord);
-          const reEncryptedRecord = await state.didObj.createDagJWE(
-            decryptedRecord,
-            [state.didObj.id, state.session.did]
-          );
-          arrayOfRecords.push({
-            recordData: reEncryptedRecord,
-            title: rec.title,
-            date: rec.date,
-          });
-        }
-        console.log({
-          to: state.session.userSocketId,
-          arrayOfRecords,
-        });
-        socket.emit("share records", {
-          to: state.session.userSocketId,
-          arrayOfRecords,
-        });
       } catch (error) {
         console.error(error);
         return false;
@@ -467,8 +421,8 @@ export default new Vuex.Store({
     },
     async endSession({ commit, state }) {
       try {
-        socket.emit("end session", { to: state.session.userSocketId });
-        commit("resetSession");
+        socket.emit("end session", { to: state.patientSession.userSocketId });
+        commit("resetPatientSession");
         return true;
       } catch (error) {
         console.error(error);
@@ -476,11 +430,8 @@ export default new Vuex.Store({
       }
     },
   },
-  plugins: [new VuexPersistence().plugin],
-  modules: {
-    doctor: doctorsModule,
-  },
-});
+};
+
 async function infuraUpload(selectedImage) {
   let imgurl = null;
 

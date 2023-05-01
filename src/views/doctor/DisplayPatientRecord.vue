@@ -1,8 +1,9 @@
 <template>
   <div class="home">
     <div class="mb-3">
-      <app-header> </app-header>
+      <doc-app-header> </doc-app-header>
     </div>
+    <h1>Viewing Patient's Health Record</h1>
 
     <div class="background">
       <div class="container">
@@ -10,54 +11,58 @@
           <div class="screen-body">
             <div class="screen-body-item left">
               <div class="app-title">
-                <span>YOUR</span>
-                <span>PROFILE</span>
+                <span>HEALTH</span>
+                <span>RECORD</span>
               </div>
-              <div class="app-contact">Powered By IDX</div>
+              <div class="app-contact">
+                <span> Document Created On: {{ currentRecord.date }}</span>
+                <br /><br />
+                <span>CID: {{ $route.params.id }}</span>
+              </div>
             </div>
-            <div
-              class="screen-body-item"
-              v-if='profile != undefined && profile.name != null && profile.name != ""'
-            >
+            <div class="screen-body-item">
               <div class="img-circle">
-                <img :src="profilePic" alt="profile-image" />
+                <img src="../../../public/Asset_W.png" alt="profile-image" />
               </div>
+              <br />
               <div class="app-form">
                 <div class="app-form-group">
-                  <p>{{ profile.name }}</p>
+                  <p>Name of the Patient:{{ session.name }}</p>
                 </div>
                 <div class="app-form-group">
-                  <p>{{ profile.gender }}</p>
+                  <p>Title: {{ currentRecord.title }}</p>
                 </div>
+                <br />
                 <div class="app-form-group">
-                  <p>{{ profile.birthDate }}</p>
+                  <p>Date of Diagnosis:{{ currentRecord.dateDiagnosis }}</p>
                 </div>
+                <br />
                 <div class="app-form-group">
-                  <p>{{ profile.homeLocation }}</p>
+                  <p>Name of the Doctor:{{ currentRecord.doctor }}</p>
                 </div>
+                <br />
                 <div class="app-form-group">
-                  <p>{{ profile.description }}</p>
+                  <p>Diagnosis: {{ currentRecord.diagnosis }}</p>
                 </div>
-              </div>
-              <div class="app-form-group buttons">
-                <button class="app-form-button" @click="home">HOME</button>
-                <button class="app-form-button"></button>
-                <button class="app-form-button" @click="editProfile">
-                  EDIT
-                </button>
-              </div>
-            </div>
-            <div class="screen-body-item" v-else>
-              <p>
-                Your Profile doesn't exist or hasn't been initialized properly,
-                please click on edit and update your profile.
-              </p>
-              <div class="app-form-group buttons">
-                <button class="app-form-button" @click="home">HOME</button>
-                <button class="app-form-button"></button>
-                <button class="app-form-button" @click="editProfile">
-                  EDIT
-                </button>
+                <br />
+                <div class="app-form-group">
+                  <p>Medicines: {{ currentRecord.medicines }}</p>
+                </div>
+
+                <div class="app-form-group buttons">
+                  <vs-row>
+                    <vs-col
+                      vs-type="flex"
+                      vs-justify="center"
+                      vs-align="center"
+                      w="6"
+                    >
+                      <vs-button @click="closeTab">
+                        <i class="bx bx-home-alt"></i> Close
+                      </vs-button>
+                    </vs-col>
+                  </vs-row>
+                </div>
               </div>
             </div>
           </div>
@@ -66,44 +71,6 @@
     </div>
   </div>
 </template>
-
-<script>
-// @ is an alias to /src
-import AppHeader from "../layout/AppHeader.vue";
-import { mapState } from "vuex";
-
-export default {
-  name: "ProfileScreen",
-  components: {
-    AppHeader,
-  },
-  data() {
-    return {
-      active: false,
-      name: "",
-      userID: "",
-      sessionID: "",
-      src: "https://www.w3schools.com/howto/img_avatar2.png",
-    };
-  },
-  methods: {
-    home() {
-      this.$router.back();
-    },
-    editProfile() {
-      this.$router.push("/editprofile");
-    },
-  },
-  computed: {
-    ...mapState(["profile", "did", "profilePic"]),
-  },
-};
-</script>
-<style scoped>
-.mb-3 {
-  margin-bottom: 3rem;
-}
-</style>
 
 <style scoped>
 h1 {
@@ -138,10 +105,8 @@ body {
 }
 
 img {
-  border-radius: 50%;
   max-width: 12.5rem;
   height: 12.5rem;
-  aspect-ratio: 1/1;
   object-fit: cover;
 }
 
@@ -153,6 +118,23 @@ p {
   letter-spacing: 1.4px;
   resize: none;
   color: #fff;
+}
+
+input {
+  font-family: "Montserrat", sans-serif;
+  font-weight: 500;
+  letter-spacing: 1.4px;
+  resize: none;
+  color: #000;
+}
+
+label:before {
+  content: attr(type);
+  display: block;
+  margin: 28px 0 0;
+  font-size: 14px;
+  color: #5a5a5a;
+  text-align: left;
 }
 
 .background {
@@ -228,7 +210,21 @@ p {
 }
 
 .app-form-group {
-  margin-bottom: 15px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+.app-form-group label {
+  display: block;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
 }
 
 .app-form-group.message {
@@ -246,7 +242,7 @@ p {
   background: none;
   border: none;
   border-bottom: 1px solid #666;
-  color: #ddd;
+  color: #000;
   font-size: 14px;
   /* text-transform: uppercase; */
   outline: none;
@@ -305,5 +301,45 @@ p {
   .screen-body-item {
     padding: 0;
   }
+}
+</style>
+
+<script>
+// @ is an alias to /src
+import DocAppHeader from "../../layout/DocAppHeader.vue";
+import { mapState } from "vuex";
+
+export default {
+  name: "DisplayPatientRecord",
+  components: {
+    DocAppHeader,
+  },
+  data() {
+    return {
+      active: false,
+      name: "",
+      did: "",
+      userID: "",
+      sessionID: "",
+      result: "",
+    };
+  },
+  methods: {
+    closeTab() {
+      window.close();
+    },
+  },
+  computed: {
+    ...mapState("doctor", {
+      currentRecord: (state) => state.currentRecord,
+      profile: (state) => state.profile,
+      session: (state) => state.patientSession,
+    }),
+  },
+};
+</script>
+<style scoped>
+.mb-3 {
+  margin-bottom: 3rem;
 }
 </style>

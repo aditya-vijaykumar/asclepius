@@ -8,6 +8,16 @@ import ProfileScreen from "./views/ProfileScreen.vue";
 import NewRecordScreen from "./views/NewRecord.vue";
 import NotFound from "./views/NotFound.vue";
 import DisplayRecord from "./views/DisplayRecord.vue";
+import DoctorLoginScreen from "./views/doctor/DoctorLoginScreen.vue";
+import DoctorDashboardScreen from "./views/doctor/DoctorDashboardScreen.vue";
+import HandleConnectionDoctor from "./views/doctor/HandleConnection.vue";
+import HandleConnection from "./views/HandleConnection.vue";
+import SessionScreen from "./views/SessionScreen.vue";
+import DisplayPatientRecord from "./views/doctor/DisplayPatientRecord.vue";
+import DoctorSessionScreen from "./views/doctor/DoctorSessionScreen.vue";
+import NewPatientRecord from "./views/doctor/NewPatientRecord.vue";
+import EditDoctorProfileScreen from "./views/doctor/EditDoctorProfileScreen.vue";
+import DoctorProfileScreen from "./views/doctor/DoctorProfileScreen.vue";
 
 Vue.use(VueRouter);
 
@@ -46,6 +56,76 @@ const routes = [
     path: "/record/:id",
     name: "DisplayRecord",
     components: { default: DisplayRecord, header: AppHeader },
+  },
+  {
+    path: "/connect",
+    name: "ConnectScreen",
+    components: {
+      default: HandleConnection,
+    },
+  },
+  {
+    path: "/doctor",
+    name: "DoctorLogin",
+    components: {
+      default: DoctorLoginScreen,
+    },
+  },
+  {
+    path: "/doctor/dashboard",
+    name: "DoctorDashboard",
+    components: {
+      default: DoctorDashboardScreen,
+    },
+  },
+  {
+    path: "/doctor/connect",
+    name: "ConnectScreen",
+    components: {
+      default: HandleConnectionDoctor,
+    },
+  },
+  {
+    path: "/session",
+    name: "SessionScreen",
+    components: {
+      default: SessionScreen,
+    },
+  },
+  {
+    path: "/doctor/session",
+    name: "DoctorSessionScreen",
+    components: {
+      default: DoctorSessionScreen,
+    },
+  },
+  {
+    path: "/doctor/view-record",
+    name: "DisplayPatientRecord",
+    components: {
+      default: DisplayPatientRecord,
+    },
+  },
+  {
+    path: "/doctor/new-record",
+    name: "NewPatientRecord",
+    components: {
+      default: NewPatientRecord,
+    },
+  },
+  {
+    path: "/doctor/profile",
+    name: "DoctorProfileScreen",
+    components: {
+      default: DoctorProfileScreen,
+    },
+  },
+  {
+    path: "/doctor/edit-profile",
+    name: "EditDoctorProfileScreen",
+    components: {
+      default: EditDoctorProfileScreen,
+    },
   },
   {
     path: "*",

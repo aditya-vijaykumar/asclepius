@@ -8,23 +8,16 @@
         <template #start>
             <b-navbar-item>
                 <b-tag rounded type="is-warning p-4">
-                         <p class="title is-5">Patient's Dashboard
+                         <p class="title is-5">Doctor's Dashboard
                         </p>
                 </b-tag> 
             </b-navbar-item>
-            <b-navbar-item @click="$router.push('/dashboard')">
+            <b-navbar-item @click="$router.push('/doctor/dashboard')">
                 Home
             </b-navbar-item>
-            <b-navbar-item @click="$router.push('/profile')">
+            <b-navbar-item @click="$router.push('/doctor/profile')">
                 Profile
             </b-navbar-item>
-            <!-- <b-navbar-item tag="div">
-                <div class="buttons">
-                    <a class="button is-warning" @click="$router.push('/new-record')">
-                        <strong>New Record</strong>
-                    </a>
-                </div>
-            </b-navbar-item> -->
         </template>
 
         <template #end>
@@ -39,26 +32,17 @@
 
 <script>
 export default {
-    name: 'AppHeader',
+    name: 'DocAppHeader',
     data() {
         return {
             active: '#ffb000'
         }
     },
     methods: {
-        openLoading() {
-            const loading = this.$vs.loading()
-            setTimeout(() => {
-                loading.close()
-            }, 2500)
-        },
-        newRecord() {
-            this.$router.push('/new')
-        },
         completeLogout() {
-            const route = this.$router.resolve({ path: '/' })
+            const route = this.$router.resolve({ path: '/doctor' })
             window.open(route.href, '_self')
-            this.$store.commit('logout')
+            this.$store.commit('doctor/logout')
         }
     }
 }

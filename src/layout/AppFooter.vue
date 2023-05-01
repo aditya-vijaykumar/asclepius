@@ -1,6 +1,6 @@
 <template>
     <div class="site-footer center">
-        Copyright &copy; 2022 All Rights Reserved by Asclepius
+        Copyright &copy; 2023 All Rights Reserved by Asclepius
     </div>
 </template>
 

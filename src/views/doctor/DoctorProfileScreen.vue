@@ -1,7 +1,7 @@
 <template>
   <div class="home">
     <div class="mb-3">
-      <app-header> </app-header>
+      <doc-app-header> </doc-app-header>
     </div>
 
     <div class="background">
@@ -69,20 +69,16 @@
 
 <script>
 // @ is an alias to /src
-import AppHeader from "../layout/AppHeader.vue";
+import DocAppHeader from "@/layout/DocAppHeader.vue";
 import { mapState } from "vuex";
 
 export default {
-  name: "ProfileScreen",
+  name: "DoctorProfileScreen",
   components: {
-    AppHeader,
+    DocAppHeader,
   },
   data() {
     return {
-      active: false,
-      name: "",
-      userID: "",
-      sessionID: "",
       src: "https://www.w3schools.com/howto/img_avatar2.png",
     };
   },
@@ -91,11 +87,15 @@ export default {
       this.$router.back();
     },
     editProfile() {
-      this.$router.push("/editprofile");
+      this.$router.push("/doctor/edit-profile");
     },
   },
   computed: {
-    ...mapState(["profile", "did", "profilePic"]),
+    ...mapState("doctor", {
+      did: (state) => state.did,
+      profile: (state) => state.profile,
+      profilePic: (state) => state.profilePic,
+    }),
   },
 };
 </script>
