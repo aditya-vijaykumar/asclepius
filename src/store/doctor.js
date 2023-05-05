@@ -44,6 +44,8 @@ const ipfs = create({
   ipld: { formats: [dagJoseIpldFormat] },
 });
 
+const whitelistedDoctorAddresses = ["0xb08138cb5f6ac6b908f0f70b72f8092eae12a9cd"];
+
 const providerOptions = {
   portis: {
     package: Portis, // required
@@ -199,6 +201,10 @@ export const doctorsModule = {
         console.log("addresses\n\n");
         // const account = addresses[0];
         console.log(addresses);
+        if(whitelistedDoctorAddresses.findIndex(v => v == addresses[0]) == -1) {
+          console.error("Address not whitelisted as a doctor.")
+          return false;
+        }
 
         const authProvider = new EthereumAuthProvider(
           provider.provider,
@@ -307,7 +313,6 @@ export const doctorsModule = {
         console.log({ jwe });
         const connectedTillDateString = jwe.connectedTill;
         console.log({ connectedTillDateString });
-        const connectedTill = new Date(connectedTillDateString);
 
         console.log({
           session: {
@@ -315,7 +320,7 @@ export const doctorsModule = {
             did: did,
             name: name,
             userSocketId: from,
-            connectedTill: connectedTill,
+            connectedTill: connectedTillDateString,
           },
         });
 
@@ -325,7 +330,7 @@ export const doctorsModule = {
             did: did,
             name: name,
             userSocketId: from,
-            connectedTill: connectedTill,
+            connectedTill: connectedTillDateString,
           },
         });
         console.log({ storeSession: state.patientSession });
@@ -353,11 +358,11 @@ export const doctorsModule = {
             did: did,
             name: name,
             userSocketId: from,
-            connectedTill: date60MinFromNow,
+            connectedTill: date60MinFromNow.toString(),
           },
         });
         const jwe = await state.didObj.createDagJWE(
-          { connectedTill: date60MinFromNow.toISOString() },
+          { connectedTill: date60MinFromNow.toString() },
           [state.didObj.id, did]
         );
         console.log({ jwe });

@@ -43,7 +43,7 @@ export default {
         danger() {
             this.$buefy.toast.open({
                 duration: 5000,
-                message: `Unsuccesful Login attempt, please try again later.`,
+                message: `Unsuccesful Login attempt, the connected wallet does not have a medical license.`,
                 position: "is-bottom",
                 type: "is-danger",
             });

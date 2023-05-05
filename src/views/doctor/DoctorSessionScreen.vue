@@ -18,7 +18,7 @@
                 <p class="title is-2">Session Established</p>
                 <p class="title is-4">Session Till</p>
                 <count-down
-                  :endDate="new Date(session.connectedTill)"
+                  :endDate="new Date(Date.parse(session.connectedTill))"
                   :onceEnded="onceEnded"
                 ></count-down>
                 <div>

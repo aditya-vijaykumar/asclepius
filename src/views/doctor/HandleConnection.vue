@@ -48,7 +48,7 @@
                     type="is-white"
                     outlined
                     @click="establishConnectionWithAnother"
-                    >Outlined</b-button
+                    >Connect Now</b-button
                   >
                 </article>
               </div>

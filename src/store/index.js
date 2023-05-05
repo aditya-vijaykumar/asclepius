@@ -383,11 +383,11 @@ export default new Vuex.Store({
             did: did,
             name: name,
             userSocketId: from,
-            connectedTill: date60MinFromNow,
+            connectedTill: date60MinFromNow.toString(),
           },
         });
         const jwe = await state.didObj.createDagJWE(
-          { connectedTill: date60MinFromNow.toISOString() },
+          { connectedTill: date60MinFromNow.toString() },
           [state.didObj.id, did]
         );
         console.log({ jwe });
@@ -410,7 +410,6 @@ export default new Vuex.Store({
         console.log({ jwe });
         const connectedTillDateString = jwe.connectedTill;
         console.log({ connectedTillDateString });
-        const connectedTill = new Date(connectedTillDateString);
 
         commit("storeConnectionDetails", {
           session: {
@@ -418,7 +417,7 @@ export default new Vuex.Store({
             did: did,
             name: name,
             userSocketId: from,
-            connectedTill: connectedTill,
+            connectedTill: connectedTillDateString,
           },
         });
         console.log({ storeSession: state.session });

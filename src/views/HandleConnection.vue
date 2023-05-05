@@ -54,7 +54,7 @@
                     type="is-white"
                     outlined
                     @click="establishConnectionWithAnother"
-                    >Outlined</b-button
+                    >Connect Now</b-button
                   >
                 </article>
               </div>
@@ -192,6 +192,7 @@ export default {
         type: "is-warning",
         hasIcon: true,
         onConfirm: () => this.onConfirmConnect({ name, did, role, from }),
+        size: "is-medium"
       });
     },
     onConfirmConnect({ from, did, name, role }) {

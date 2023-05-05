@@ -18,7 +18,7 @@
                 <p class="title is-2">Session Established</p>
                 <p class="title is-4">Session Till</p>
                 <count-down
-                  :endDate="new Date(session.connectedTill)"
+                  :endDate="new Date(Date.parse(session.connectedTill))"
                   :onceEnded="onceEnded"
                 ></count-down>
                 <div>
@@ -211,12 +211,12 @@ export default {
               window.open(route.href, "_blank");
             }, 1000);
           } else {
-            this.danger();
+            this.danger("The connection request was rejected or timed out.");
           }
         })
         .catch(() => {
           this.isLoading = false;
-          this.danger();
+          this.danger("The connection request was rejected or timed out.");
         });
     },
     async shareRecords() {
@@ -245,10 +245,10 @@ export default {
         console.error(error);
       }
     },
-    danger() {
+    danger(message) {
       this.$buefy.toast.open({
         duration: 5000,
-        message: `The connection request was rejected or timed out.`,
+        message: message,
         position: "is-bottom",
         type: "is-danger",
       });
