@@ -175,7 +175,7 @@ export default {
             this.success("Successfully decrypted the record, loading it now.");
             setTimeout(() => {
               const route = this.$router.resolve({
-                path: `/view-record`,
+                path: `/doctor/view-record`,
               });
               window.open(route.href, "_blank");
             }, 1000);
